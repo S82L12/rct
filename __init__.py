@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
 
-from rct.models import db, Vlan
+from rct.models import db, Vlan, Address
 import rct.models
 
 
@@ -30,17 +30,25 @@ def addvlans():
             db.session.flush()
             db.session.commit()
         except:
-            vlan = Vlan(id_vl=request.form['addvlanid'], name=request.form['addvlanname'])
-            db.session.add(vlan)
+            db.session.rollback()
+            print("Ошибка добавления адреса в базу")
+    else:
+        list_address = db.session.query(Address).all()
+    return render_template("vlans.html", list_address = list_address)
+
+@app.route('/address', methods = ['POST', 'GET'])
+def addaddress():
+    if request.method == "POST":
+        try:
+            address = Address(small_address = request.form['small_address'], rgis_address = request.form['rgis_address'])
+            db.session.add(address)
             db.session.flush()
             db.session.commit()
+        except:
+            db.session.rollback()
+            print("Ошибка добавления адреса в базу")
 
-            print("Ошибка добавления в Базу данных ")
-
-    return render_template("vlans.html")
-
-
-
+    return render_template("address.html")
 
 if __name__ == "__main__":
     app.run(debug = True)  # на этапе разработке True
