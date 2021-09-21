@@ -21,7 +21,7 @@ Vlans
 
 </header>
       <h2>Работа со списком VLAN</h2>
-      <canvas class="my-4 w-100 chartjs-render-monitor" id="myChart" width="0" height="0" style="display: block; width: 0px; height: 0px;"></canvas>
+
       <button type="button" class="btn btn-secondary">Загрузить шаблон EXCEL</button>
       <button type="button" class="btn btn-secondary">Загрузить список VLAN из файла EXCEL</button>
 
@@ -38,13 +38,13 @@ Vlans
             </tr>
           </thead>
           <tbody>
-          <form method="post">
+          <form method="post" name="addvlanform" >
             <tr>
               <td><input class="form-control form-control-dark w-100" name="addvlanid" id="search" type="text" placeholder="Введите vlan ID" aria-label="Search"></td>
               <td><input class="form-control form-control-dark w-100" name="addvlanname" id="search" type="text" placeholder="Введите имя VLAN" aria-label="Search"></td>
 
               <td>
-                  <select name="list1" class="form-control form-control-dark w-100">
+                  <select name="addrlist" class="form-control form-control-dark w-100">
                       <option>Выберите из списка</option>
                       {% for i in list_address%}
                       <option>{{i.small_address}}</option>

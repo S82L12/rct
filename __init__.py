@@ -23,18 +23,21 @@ def main():
 
 @app.route('/vlans', methods = ['POST', 'GET'])
 def addvlans():
+    list_address = db.session.query(Address).all()
+    list_vlans = db.session.query(Vlan).all()
     if request.method == "POST":
         try:
-            vlan = Vlan(id_vl=request.form['addvlanid'], name=request.form['addvlanname'])
+            addr = db.session.query(Address).filter_by(small_address=request.form['addrlist']).one()
+            vlan = Vlan(id_vl=request.form['addvlanid'], name=request.form['addvlanname'], address_id = addr.id)
             db.session.add(vlan)
             db.session.flush()
             db.session.commit()
         except:
             db.session.rollback()
             print("Ошибка добавления адреса в базу")
-    else:
-        list_address = db.session.query(Address).all()
-    return render_template("vlans.html", list_address = list_address)
+
+
+    return render_template("vlans.html", list_address = list_address, list_vlans = list_vlans)
 
 @app.route('/address', methods = ['POST', 'GET'])
 def addaddress():

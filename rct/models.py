@@ -77,8 +77,8 @@ class Ipaddr(db.Model):
 
 class Vlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    id_vl = db.Column(db.Integer, nullable=False, comment='id_vlan')
-    name = db.Column(db.String(14), nullable=False, comment='name_vlan')
+    id_vl = db.Column(db.Integer, nullable=False, comment='id_vlan', unique=True)
+    name = db.Column(db.String(14), nullable=False, comment='name_vlan', unique=True)
     placeses = db.relationship('Place', backref = 'vlanplace')
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
 
