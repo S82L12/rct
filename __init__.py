@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file
 
 from rct.models import db, Vlan, Address
 import rct.models
@@ -23,7 +23,7 @@ def main():
 
 @app.route('/delvlans', methods = ['POST'])
 def delvlans():
-    status = request.form['delbtn']
+    #status = request.form['delbtn']
     try:
         vlanToDelete = Vlan.query.get(request.form['delbtn'])
         db.session.delete(vlanToDelete)
@@ -42,7 +42,7 @@ def delvlans():
 @app.route('/vlans', methods = ['POST', 'GET'])
 def addvlans():
     list_address = db.session.query(Address).all()
-    list_vlans = db.session.query(Vlan).all()
+    list_vlans = db.session.query(Vlan).order_by("id_vl").all()
     if request.method == "POST":
         try:
             addr = db.session.query(Address).filter_by(small_address=request.form['addrlist']).one()
@@ -50,7 +50,7 @@ def addvlans():
             db.session.add(vlan)
             db.session.flush()
             db.session.commit()
-            list_vlans = db.session.query(Vlan).all()
+            list_vlans = db.session.query(Vlan).order_by("id_vl").all()
         except:
             db.session.rollback()
             print("Ошибка добавления адреса в базу")
@@ -72,6 +72,26 @@ def addaddress():
             print("Ошибка добавления адреса в базу")
 
     return render_template("address.html")
+
+@app.route('/files', methods = ['POST'])
+def downloadFile ():
+    if request.form['btnfiles'] == 'downloadvlans':
+        #For windows you need to use drive name [ex: F:/Example.pdf]
+        path = "files/vlans.xlsx"
+        return send_file(path, as_attachment=True)
+    elif request.form['btnfiles'] == 'uploadvlans':
+        print('OK')
+        return "OK"
+
+
+@app.route('/uploadvlans', methods = ['POST'])
+def uploadsFileVlans ():
+    #For windows you need to use drive name [ex: F:/Example.pdf]
+    path = "/Examples.pdf"
+    return send_file(path, as_attachment=True)
+
+
+
 
 if __name__ == "__main__":
     app.run(debug = True)  # на этапе разработке True
