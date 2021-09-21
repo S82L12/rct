@@ -20,11 +20,12 @@
   </ul>
 
 </header>
-      <canvas class="my-4 w-100 chartjs-render-monitor" id="myChart" width="0" height="0" style="display: block; width: 0px; height: 0px;"></canvas>
+    <h2>Работа с Адресами</h2>
+
       <button type="button" class="btn btn-secondary">Загрузить шаблон EXCEL</button>
       <button type="button" class="btn btn-secondary">Загрузить список адресов из файла EXCEL</button>
 
-      <h2>Работа с Адресами</h2>
+
       <div class="table-responsive">
         <table class="table table-striped table-sm">
           <thead>
@@ -42,12 +43,14 @@
               <td><button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
             </tr>
           </form>
+            {% for i in list_addreses %}
+          <form action = "/deladdr" method = "POST"">
             <tr>
-              <td>1,001</td>
-              <td>random</td>
-
-              <td><button type="button" class="btn btn-dark btn-sm">Удалить</button></td>
-            </tr>
+              <td>{{i.small_address}}</td>
+              <td>{{i.rgis_address}}</td>
+              <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
+            </tr></form>
+              {%  endfor %}
 
           </tbody>
         </table>

@@ -37,6 +37,13 @@ class Location(db.Model, TimestampMixin):
     places = db.relationship('Place', backref='placelocat')
 
 
+class Type(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String(7),unique=True)
+    vlans = db.relationship('Vlan', backref='typevlans')
+
+
+
 class Place(db.Model, TimestampMixin):
     #__table_args__ = (PrimaryKeyConstraint('location_id', 'address_id'),)
     __table_args__ = (UniqueConstraint('location_id', 'address_id', name ='place_address'),)
@@ -81,6 +88,7 @@ class Vlan(db.Model):
     name = db.Column(db.String(14), nullable=False, comment='name_vlan', unique=True)
     placeses = db.relationship('Place', backref = 'vlanplace')
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
+    type_id = db.Column(db.Integer, db.ForeignKey('type.id'))
 
 class Device(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
