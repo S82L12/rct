@@ -55,12 +55,16 @@ Vlans
                 <td><button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
             </tr>
           </form>
+
+          {% for i in list_vlans %}
+          <form action = "/delvlans" method = "POST" name="{{i.id}}">
             <tr>
-              <td>1,001</td>
-              <td>random</td>
-              <td>data</td>
-              <td><button type="button" class="btn btn-dark btn-sm">Удалить</button></td>
-            </tr>
+              <td>{{i.id_vl}}</td>
+              <td>{{i.name}}</td>
+              <td>{{i.address_id}}</td>
+              <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
+            </tr></form>
+              {%  endfor %}
 
           </tbody>
         </table>
