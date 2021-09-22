@@ -22,9 +22,15 @@
 </header>
     <h2>Работа с Адресами</h2>
 
-      <button type="button" class="btn btn-secondary">Загрузить шаблон EXCEL</button>
-      <button type="button" class="btn btn-secondary">Загрузить список адресов из файла EXCEL</button>
-
+     <form method="POST" enctype=multipart/form-data action="/files">
+        <div class="pb-1" >
+        <button type="submit" name ="btnfiles" value="downloadaddress" class="btn btn-secondary ">Загрузить шаблон EXCEL</button>
+        </div>
+        <div class="pb-1" >
+        <button type="submit" name ="btnfiles" value="uploadaddress" class="btn btn-secondary ">Загрузить список адресов из файла EXCEL</button>
+        </div>
+        <p><input type="file" name="file"></p>
+    </form>
 
       <div class="table-responsive">
         <table class="table table-striped table-sm">

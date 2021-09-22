@@ -28,6 +28,7 @@ class Address(db.Model, TimestampMixin):
     small_address = db.Column(db.String(50), comment='small_address')
     rgis_address  = db.Column(db.String(200), comment='rgis')
     district = db.Column(db.String(50), default='Красносельский', comment='rayon')
+    translate = db.Column(db.String(50), comment='translate')
     places = db.relationship('Place', backref='placeaddr')
     vlans = db.relationship('Vlan', backref='addressvlans')
 
@@ -127,6 +128,13 @@ def vlanFromFile(filename, app):
     cols = sheet.max_column
     status_list = []
 
+    head_dict = {
+        "VLAN ID": "VLAN ID",
+        "Имя VLAN": "Имя VLAN",
+        "Адрес": "Адрес",
+        "Статус" : "Статус"}
+
+    status_list.append(head_dict)
 
     for i in range(2, rows + 1):
         status_dict={}
@@ -154,9 +162,61 @@ def vlanFromFile(filename, app):
                     db.session.rollback()
                     status_dict['status'] = "Ошибка добавления"
         else:
+            status_dict['address'] = small_address
             status_dict['status'] = "Необходимо добавить адрес в базу"
         status_list.append(status_dict)
+
     return status_list
 
 
 
+def addrFromFile(filename, app):
+    source_excel = app.config['UPLOAD_FOLDER']+'/' + filename
+    wb = openpyxl.load_workbook(source_excel)
+    sheet = wb.active
+    rows = sheet.max_row
+    cols = sheet.max_column
+    status_list = []
+
+    head_dict = {
+        "АДРЕС" : "АДРЕС",
+        "Адрес РГИС" : "Адрес РГИС",
+        "Район" : "Район",
+        "Статус" : "Статус"}
+
+    status_list.append(head_dict)
+
+    for i in range(2, rows + 1):
+        status_dict = {}
+        small_address = sheet.cell(row=i, column=1).value
+        status_dict["small_address"] = small_address
+        rgis_address = sheet.cell(row=i, column=2).value
+        status_dict["rgis_address"] = rgis_address
+        district  = sheet.cell(row=i, column=3).value
+        status_dict["district"] = district
+
+
+        small_address = small_address.strip()
+        rgis_address = rgis_address.strip()
+
+        addr = Address.query.filter(Address.small_address.contains(small_address)).first()
+        addrrgis = Address.query.filter(Address.rgis_address.contains(rgis_address)).first()
+
+        if addr and addrrgis:
+            status_dict['status'] = 'ПАРА small adsress и rgis уже существуют'
+
+        else:
+            try:
+                address = Address(small_address=small_address, rgis_address = rgis_address, district=district)
+                db.session.add(address)
+                db.session.flush()
+                db.session.commit()
+                status_dict['status'] = "Добавлено в базу"
+
+            except:
+                db.session.rollback()
+                status_dict['status'] = "Ошибка добавления"
+
+        status_list.append(status_dict)
+
+    return status_list

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile
+from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile
 import os
 import rct.models
 
@@ -137,11 +137,39 @@ def addtype():
 
 @app.route('/files', methods = ['POST'])
 def downloadFile ():
+    """Обработчик загрузки и выгрузки файлов"""
+    # Выгрузка файлов:
+    # - vlan.xlsx
     if request.form['btnfiles'] == 'downloadvlans':
         return send_file(app.config['DOWNLOAD_VLAN_FOLDER'], as_attachment=True)
-
+    # - address.xlsx
+    elif request.form['btnfiles'] == 'downloadaddress':
+        return send_file(app.config['DOWNLOAD_ADDRESS_FOLDER'], as_attachment=True)
+    # Загрузка из файла
+    # from vlan
     elif request.form['btnfiles'] == 'uploadvlans':
-        #try:
+        try:
+            file = request.files['file']
+            if not file.filename:
+                status = "Проверьте имя файла"
+                return render_template("delitem.html", status=status)
+
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                # status = str(filename) + " Успешно загружен"
+                # return  render_template("delitem.html", status = status)
+
+                return render_template("statuspage.html", status_list =vlanFromFile(filename, app))
+
+        except:
+            status = "Что-то пошло не так :("
+            return render_template("delitem.html", status=status)
+
+
+    # from address
+    elif request.form['btnfiles'] == 'uploadaddress':
+    #    try:
         file = request.files['file']
         if not file.filename:
             status = "Проверьте имя файла"
@@ -150,13 +178,12 @@ def downloadFile ():
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            # status = str(filename) + " Успешно загружен"
-            # return  render_template("delitem.html", status = status)
+            return render_template("statuspage.html", status_list =addrFromFile(filename, app))
 
-            return render_template("status_page.html", status_list =vlanFromFile(filename, app))
-       # except:
-            status = "Что-то пошло не так :("
-            return render_template("delitem.html", status=status)
+     #   except:
+      #      status = "Что-то пошло не так :("
+       #     return render_template("delitem.html", status=status)
+
 
 def allowed_file(filename):
     return '.' in filename and \

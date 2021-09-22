@@ -1,6 +1,3 @@
-ЕСЛИ ВЫ ВИДИТЕ эту тсраницу, значит что-то не так
-
-
 {% extends 'base.html' %}
 
 {% block title %}
@@ -9,36 +6,27 @@ status_page
 
 {% block body %}
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4"><div class="chartjs-size-monitor"><div class="chartjs-size-monitor-expand"><div class=""></div></div><div class="chartjs-size-monitor-shrink"><div class=""></div></div></div>
-<h2>Отчет о добавленных VLAN: </h2>
-
-
-
-
-
-
-
+<h2>Отчет о загрузки из файла </h2>
 
 <div class="table-responsive">
         <table class="table table-striped table-sm">
             <thead>
-            <tr>
-              <th scope="col">VLAN ID</th>
-              <th scope="col">Имя VLAN</th>
-              <th scope="col">Адрес</th>
-              <th scope="col">Тип Устройства</th>
-              <th scope="col">Статус</th>
 
+            <tr>
+                {% for i in status_list[0] %}
+              <th scope="col">{{i}}</th>
+
+                {%endfor %}
             </tr>
+
           </thead>
             <tbody>
-            {% for i in status_list %}
+            {% for i in status_list[1:] %}
 
             <tr>
-              <td>{{i.vlan_id}}</td>
-              <td>{{i.name}}</td>
-              <td>{{i.address}}</td>
-              <td>{{i.type}}</td>
-              <td>{{i.status}}</td>
+                {% for j in i %}
+                    <td>{{i[j]}}</td>
+                {% endfor %}
             </tr>
 
             {% endfor %}
