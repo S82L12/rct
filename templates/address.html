@@ -38,14 +38,16 @@
             <tr>
               <th scope="col">Адрес</th>
               <th scope="col">Адрес в формате RGIS</th>
+              <th scope="col">Трансляция</th>
               <th scope="col">Действия</th>
             </tr>
           </thead>
           <tbody>
           <form method="post">
             <tr>
-              <td><input class="form-control form-control-dark w-100" name="small_address" id="search" type="text" placeholder="адрес 'small'" aria-label="Search"></td>
-              <td><input class="form-control form-control-dark w-100" name="rgis_address" id="search" type="text" placeholder="адрес в РГИС" aria-label="Search"></td>
+              <td><input class="form-control form-control-dark w-100" name="small_address" id="search" type="text" placeholder="адрес 'small'" ></td>
+              <td><input class="form-control form-control-dark w-100" name="rgis_address" id="search" type="text" placeholder="адрес в РГИС" ></td>
+              <td>Автоматически</td>
               <td><button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
             </tr>
           </form>
@@ -54,6 +56,7 @@
             <tr>
               <td>{{i.small_address}}</td>
               <td>{{i.rgis_address}}</td>
+              <td>{{i.translate}}</td>
               <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
             </tr></form>
               {%  endfor %}

@@ -6,8 +6,11 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Date,
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import openpyxl
+from transliterate import translit
 
 db = SQLAlchemy()
+
+
 
 
 class TimestampMixin:
@@ -31,6 +34,7 @@ class Address(db.Model, TimestampMixin):
     translate = db.Column(db.String(50), comment='translate')
     places = db.relationship('Place', backref='placeaddr')
     vlans = db.relationship('Vlan', backref='addressvlans')
+
 
 
 class Location(db.Model, TimestampMixin):
@@ -170,7 +174,7 @@ def vlanFromFile(filename, app):
 
 
 
-def addrFromFile(filename, app):
+def addrFromFile(filename, app, translit):
     source_excel = app.config['UPLOAD_FOLDER']+'/' + filename
     wb = openpyxl.load_workbook(source_excel)
     sheet = wb.active
@@ -195,10 +199,11 @@ def addrFromFile(filename, app):
         district  = sheet.cell(row=i, column=3).value
         status_dict["district"] = district
 
+        small_address = runupaddr(small_address)
 
-        small_address = small_address.strip()
         rgis_address = rgis_address.strip()
-
+        translate = translit(small_address, language_code='ru', reversed=True)
+        translate = translate.replace("'","")
         addr = Address.query.filter(Address.small_address.contains(small_address)).first()
         addrrgis = Address.query.filter(Address.rgis_address.contains(rgis_address)).first()
 
@@ -206,17 +211,22 @@ def addrFromFile(filename, app):
             status_dict['status'] = 'ПАРА small adsress и rgis уже существуют'
 
         else:
-            try:
-                address = Address(small_address=small_address, rgis_address = rgis_address, district=district)
+           try:
+                address = Address(small_address=small_address, rgis_address = rgis_address, district=district, translate = translate)
                 db.session.add(address)
                 db.session.flush()
                 db.session.commit()
                 status_dict['status'] = "Добавлено в базу"
-
-            except:
-                db.session.rollback()
-                status_dict['status'] = "Ошибка добавления"
+           except:
+               db.session.rollback()
+               status_dict['status'] = "Ошибка добавления"
 
         status_list.append(status_dict)
 
     return status_list
+
+def runupaddr(small_address):
+    """Удаление пробелов и добавление заглавной буквы"""
+    small_address = small_address.strip()
+    small_address = small_address.title()
+    return small_address

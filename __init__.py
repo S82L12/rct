@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile
+from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr
+from transliterate import translit
 import os
 import rct.models
 
@@ -106,7 +107,10 @@ def addaddress():
     list_addreses = db.session.query(Address).order_by("small_address").all()
     if request.method == "POST":
         try:
-            address = Address(small_address = request.form['small_address'], rgis_address = request.form['rgis_address'])
+            small_address = runupaddr(request.form['small_address'])
+            translate = translit(small_address, language_code='ru', reversed=True)
+            translate = translate.replace("'", "")
+            address = Address(small_address = small_address, rgis_address = request.form['rgis_address'], translate = translate)
             db.session.add(address)
             db.session.flush()
             db.session.commit()
@@ -169,20 +173,21 @@ def downloadFile ():
 
     # from address
     elif request.form['btnfiles'] == 'uploadaddress':
-    #    try:
-        file = request.files['file']
-        if not file.filename:
-            status = "Проверьте имя файла"
+        try:
+            file = request.files['file']
+            if not file.filename:
+                status = "Проверьте имя файла"
+                return render_template("delitem.html", status=status)
+
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                return render_template("statuspage.html", status_list =addrFromFile(filename, app,translit))
+
+        except:
+            status = "Что-то пошло не так :("
             return render_template("delitem.html", status=status)
 
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return render_template("statuspage.html", status_list =addrFromFile(filename, app))
-
-     #   except:
-      #      status = "Что-то пошло не так :("
-       #     return render_template("delitem.html", status=status)
 
 
 def allowed_file(filename):
