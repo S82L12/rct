@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Date, Boolean, PrimaryKeyConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
+import openpyxl
 
 db = SQLAlchemy()
 
@@ -116,5 +117,46 @@ class Port(db.Model, TimestampMixin):
     places = db.relationship('Place', backref='placeport')
     status = db.Column(db.String(10), default = 'off', comment = 'empty')
     link = db.Column(db.String(10), default = 'access', comment = 'uplink-downlink')
+
+
+def vlanFromFile(filename, app):
+    source_excel = app.config['UPLOAD_FOLDER']+'/' + filename
+    wb = openpyxl.load_workbook(source_excel)
+    sheet = wb.active
+    rows = sheet.max_row
+    cols = sheet.max_column
+    status_list = []
+
+
+    for i in range(2, rows + 1):
+        status_dict={}
+        id_vl = sheet.cell(row=i, column=1).value
+        status_dict["vlan_id"] = id_vl
+        name = sheet.cell(row=i, column=2).value
+        status_dict["name"] = name
+        type = sheet.cell(row=i, column=3).value
+        small_address = sheet.cell(row=i, column=4).value
+
+        small_address = small_address.strip()
+        addr = Address.query.filter(Address.small_address.contains(small_address)).first()
+        if addr:
+            status_dict['address'] = addr.small_address
+            type = Type.query.filter(Type.type.contains(type)).first()
+            if type:
+                status_dict['type'] = type.type
+                try:
+                    vlan = Vlan(id_vl=id_vl, name=name, address_id=addr.id, type_id=type.id)
+                    db.session.add(vlan)
+                    db.session.flush()
+                    db.session.commit()
+                    status_dict['status'] = "Добавлено в базу"
+                except:
+                    db.session.rollback()
+                    status_dict['status'] = "Ошибка добавления"
+        else:
+            status_dict['status'] = "Необходимо добавить адрес в базу"
+        status_list.append(status_dict)
+    return status_list
+
 
 

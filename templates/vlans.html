@@ -23,8 +23,13 @@ Vlans
     <h2>Работа со списком VLAN</h2>
 
     <form method="POST" enctype=multipart/form-data action="/files">
+        <div class="pb-1" >
         <button type="submit" name ="btnfiles" value="downloadvlans" class="btn btn-secondary ">Загрузить шаблон EXCEL</button>
+        </div>
+        <div class="pb-1" >
         <button type="submit" name ="btnfiles" value="uploadvlans" class="btn btn-secondary ">Загрузить список VLAN из файла EXCEL</button>
+        </div>
+        <p><input type="file" name="file"></p>
     </form>
 
       <div class="table-responsive">

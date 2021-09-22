@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, send_file, send_from_directory
-
-from rct.models import db, Vlan, Address, Type
+from flask import Flask, render_template, request, send_file, redirect, url_for
+from werkzeug.utils import secure_filename
+from rct.models import db, Vlan, Address, Type, vlanFromFile
+import os
 import rct.models
 
 
@@ -137,21 +138,29 @@ def addtype():
 @app.route('/files', methods = ['POST'])
 def downloadFile ():
     if request.form['btnfiles'] == 'downloadvlans':
-        #For windows you need to use drive name [ex: F:/Example.pdf]
-        #path = "files/vlans.xlsx"
         return send_file(app.config['DOWNLOAD_VLAN_FOLDER'], as_attachment=True)
-        #return send_file(path, as_attachment=True)
+
     elif request.form['btnfiles'] == 'uploadvlans':
+        #try:
         file = request.files['file']
+        if not file.filename:
+            status = "Проверьте имя файла"
+            return render_template("delitem.html", status=status)
+
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return redirect(url_for('uploaded_file', filename=filename))
+            # status = str(filename) + " Успешно загружен"
+            # return  render_template("delitem.html", status = status)
 
+            return render_template("status_page.html", status_list =vlanFromFile(filename, app))
+       # except:
+            status = "Что-то пошло не так :("
+            return render_template("delitem.html", status=status)
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+           filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
 
 if __name__ == "__main__":
     app.run(debug = True)  # на этапе разработке True
