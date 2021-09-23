@@ -11,3 +11,5 @@ https://docs-python.ru/packages/modul-transliterate-python/
 >>> text = translit(ru_text, language_code='ru', reversed=True)
 >>> text
 # 'Mihail, Julija, Sofija, Andrej'
+
+устанавливаем pip install flask-wtf

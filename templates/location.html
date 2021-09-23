@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Адреса
+{% endblock %}
+
+{% block body %}
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4"><div class="chartjs-size-monitor"><div class="chartjs-size-monitor-expand"><div class=""></div></div><div class="chartjs-size-monitor-shrink"><div class=""></div></div></div>
+      <form method="post">
+      <header  class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+      </form>
+  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" >ОШИБКИ:</a>
+    <a class="form-control form-control-dark w-100" name="search" id="search" type="text">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+    </a>
+  <ul class="navbar-nav px-3">
+    <li class="nav-item text-nowrap">
+
+
+    </li>
+  </ul>
+
+</header>
+    <h2>Работа с Локациями</h2>
+
+     <form method="POST" enctype=multipart/form-data action="/files">
+        <div class="pb-1" >
+        <button type="submit" name ="btnfiles" value="downloadlocat" class="btn btn-secondary ">Загрузить шаблон EXCEL</button>
+        </div>
+        <div class="pb-1" >
+        <button type="submit" name ="btnfiles" value="uploadlocat" class="btn btn-secondary ">Загрузить список адресов из файла EXCEL</button>
+        </div>
+        <p><input type="file" name="file"></p>
+    </form>
+
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th scope="col">Локация (место установки)</th>
+            </tr>
+          </thead>
+          <tbody>
+
+          <form method="post">
+              {{ form.hidden_tag() }}
+            <tr>
+              <td>{{form.small_location(class="form-control form-control-dark w-100" ) }}</td>
+              <td>{{form.submit(class="btn btn-dark btn-sm" )}}</td>
+            </tr>
+          </form>
+
+          {% for field, errors in form.errors.items() %}
+            <small class="form-text text-muted ">
+            {{ ', '.join(errors) }}
+            </small>
+          {% endfor %}
+
+            {% for i in list_locations %}
+
+          <form action = "/dellocat" method = "POST"">
+            <tr>
+              <td>{{i.small_location}}</td>
+
+              <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
+            </tr></form>
+
+              {%  endfor %}
+
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+{% endblock %}

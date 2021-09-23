@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, send_file, redirect, url_for
+from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr
+from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile
 from transliterate import translit
 import os
+from rct.forms import LocationFormAdd
 import rct.models
 
 
@@ -41,6 +42,7 @@ def delvlans():
 
     return  render_template("delvlans.html", status = status)
 
+
 @app.route('/deltype', methods = ['POST'])
 def deltype():
     #status = request.form['delbtn']
@@ -59,6 +61,25 @@ def deltype():
 
     return  render_template("delitem.html", status = status)
 
+
+@app.route('/dellocat', methods = ['POST'])
+def dellocat():
+   try:
+        locatToDelete = Location.query.get(request.form['delbtn'])
+        status = locatToDelete.small_location
+        db.session.delete(locatToDelete)
+        db.session.flush()
+        db.session.commit()
+        status = "Type: "+ status +" Успешно удален"
+
+   except:
+        db.session.rollback()
+        print("Ошибка удаления")
+        status = "Ошибка удаления TYPE : " + status
+
+   return  render_template("delitem.html", status = status)
+
+
 @app.route('/deladdr', methods = ['POST'])
 def deladdr():
     #status = request.form['delbtn']
@@ -76,7 +97,6 @@ def deladdr():
 
 
     return  render_template("delitem.html", status = status)
-
 
 
 @app.route('/vlans', methods = ['POST', 'GET'])
@@ -102,6 +122,7 @@ def addvlans():
 
     return render_template("vlans.html", list_address = list_address, list_vlans = list_vlans, list_type = list_type)
 
+
 @app.route('/address', methods = ['POST', 'GET'])
 def addaddress():
     list_addreses = db.session.query(Address).order_by("small_address").all()
@@ -119,7 +140,8 @@ def addaddress():
             db.session.rollback()
             print("Ошибка добавления адреса в базу")
 
-    return render_template("address.html", list_addreses=list_addreses)
+    return render_template("address.html", list_addreses=list_addreses, title = 'Адреса')
+
 
 @app.route('/type', methods = ['POST', 'GET'])
 def addtype():
@@ -138,7 +160,6 @@ def addtype():
     return render_template("type.html", list_type = list_type)
 
 
-
 @app.route('/files', methods = ['POST'])
 def downloadFile ():
     """Обработчик загрузки и выгрузки файлов"""
@@ -149,6 +170,10 @@ def downloadFile ():
     # - address.xlsx
     elif request.form['btnfiles'] == 'downloadaddress':
         return send_file(app.config['DOWNLOAD_ADDRESS_FOLDER'], as_attachment=True)
+    # - location.xlsx
+    elif request.form['btnfiles'] == 'downloadlocat':
+        return send_file(app.config['DOWNLOAD_LOCAT_FOLDER'], as_attachment=True)
+
     # Загрузка из файла
     # from vlan
     elif request.form['btnfiles'] == 'uploadvlans':
@@ -188,11 +213,59 @@ def downloadFile ():
             status = "Что-то пошло не так :("
             return render_template("delitem.html", status=status)
 
+    # from locat
+    elif request.form['btnfiles'] == 'uploadlocat':
+        #try:
+            file = request.files['file']
+            if not file.filename:
+                status = "Проверьте имя файла"
+                return render_template("delitem.html", status=status)
+
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                # status = str(filename) + " Успешно загружен"
+                # return  render_template("delitem.html", status = status)
+
+                return render_template("statuspage.html", status_list=locatFromFile(filename, app))
+
+        # except:
+        #     status = "Что-то пошло не так :("
+        #     return render_template("delitem.html", status=status)
+
+
+
+
+@app.route('/location', methods = ['POST', 'GET'])
+def location():
+    list_locations = db.session.query(Location).order_by("small_location").all()
+    form = LocationFormAdd()
+    if form.validate_on_submit():
+       try:
+            small_location = form.small_location.data
+            location = Location(small_location=small_location)
+            db.session.add(location)
+            db.session.flush()
+            db.session.commit()
+            list_locations = db.session.query(Location).order_by("small_location").all()
+            return redirect(url_for("location"))
+
+       except:
+            db.session.rollback()
+            print("Ошибка добавления адреса в базу")
+            flash("Ошибка добавления адреса в базу", "error")
+            return redirect(url_for("location"))
+
+    return render_template("location.html", list_locations = list_locations, title = 'Локация', form = form)
+
 
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
+
+
+
 
 if __name__ == "__main__":
     app.run(debug = True)  # на этапе разработке True

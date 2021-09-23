@@ -37,9 +37,9 @@ class Address(db.Model, TimestampMixin):
 
 
 
-class Location(db.Model, TimestampMixin):
+class Location(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    small_location = db.Column(db.String(500))
+    small_location = db.Column(db.String(10),unique=True)
     places = db.relationship('Place', backref='placelocat')
 
 
@@ -172,6 +172,46 @@ def vlanFromFile(filename, app):
 
     return status_list
 
+def locatFromFile(filename, app):
+    source_excel = app.config['UPLOAD_FOLDER'] + '/' + filename
+    wb = openpyxl.load_workbook(source_excel)
+    sheet = wb.active
+    rows = sheet.max_row
+    cols = sheet.max_column
+    status_list = []
+
+    head_dict = {
+        "Локация": "Локация",
+        "Статус": "Статус"
+    }
+
+    status_list.append(head_dict)
+
+    for i in range(2, rows + 1):
+        status_dict = {}
+        small_location = sheet.cell(row=i, column=1).value
+        status_dict["small_location"] = small_location
+
+        locat = Location.query.filter(Location.small_location.contains(small_location)).first()
+
+
+        if locat:
+            status_dict['status'] = 'Локация уже существует'
+
+        else:
+           try:
+                location = Location(small_location=small_location)
+                db.session.add(location)
+                db.session.flush()
+                db.session.commit()
+                status_dict['status'] = "Добавлено в базу"
+           except:
+               db.session.rollback()
+               status_dict['status'] = "Ошибка добавления"
+
+        status_list.append(status_dict)
+
+    return status_list
 
 
 def addrFromFile(filename, app, translit):
