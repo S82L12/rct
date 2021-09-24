@@ -31,14 +31,14 @@
   </ul>
 
 </header>
-    <h2>Работа с Локациями</h2>
+    <h2>Работа с Моделями </h2>
 
      <form method="POST" enctype=multipart/form-data action="/files">
         <div class="pb-1" >
-        <button type="submit" name ="btnfiles" value="downloadlocat" class="btn btn-secondary ">Загрузить шаблон EXCEL</button>
+        <button type="submit" name ="btnfiles" value="downloadmodels" class="btn btn-secondary ">Загрузить шаблон EXCEL</button>
         </div>
         <div class="pb-1" >
-        <button type="submit" name ="btnfiles" value="uploadlocat" class="btn btn-secondary ">Загрузить список локаций из файла EXCEL</button>
+        <button type="submit" name ="btnfiles" value="uploadmodels" class="btn btn-secondary ">Загрузить модели из файла EXCEL</button>
         </div>
         <p><input type="file" name="file"></p>
     </form>
@@ -47,7 +47,7 @@
         <table class="table table-striped table-sm">
           <thead>
             <tr>
-              <th scope="col">Локация (место установки)</th>
+              <th scope="col">Модели</th>
             </tr>
           </thead>
           <tbody>
@@ -55,7 +55,7 @@
           <form method="post">
               {{ form.hidden_tag() }}
             <tr>
-              <td>{{form.small_location(class="form-control form-control-dark w-100" ) }}</td>
+              <td>{{form.model(class="form-control form-control-dark w-100" ) }}</td>
               <td>{{form.submit(class="btn btn-dark btn-sm" )}}</td>
             </tr>
           </form>
@@ -66,11 +66,11 @@
             </small>
           {% endfor %}
 
-            {% for i in list_locations %}
+            {% for i in list_models %}
 
-          <form action = "/dellocat" method = "POST"">
+          <form action = "/delmodel" method = "POST"">
             <tr>
-              <td>{{i.small_location}}</td>
+              <td>{{i.model}}</td>
 
               <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
             </tr></form>

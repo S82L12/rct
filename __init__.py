@@ -1,10 +1,11 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile,check_if_ip_is_network
+from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel
+import rct.models
 from transliterate import translit
 import os
-from rct.forms import LocationFormAdd
-import rct.models
+from rct.forms import LocationFormAdd, ModelFormAdd
+
 
 
 app = Flask(__name__, instance_relative_config=True)
@@ -41,6 +42,25 @@ def delvlans():
 
 
     return  render_template("delvlans.html", status = status)
+
+@app.route('/delmodel', methods = ['POST'])
+def delmodel():
+    try:
+        modelToDelete = Model.query.get(request.form['delbtn'])
+        status = modelToDelete.model
+        db.session.delete(modelToDelete)
+        db.session.flush()
+        db.session.commit()
+        status = "Type: " + status + " Успешно удален"
+    except:
+        db.session.rollback()
+        print("Ошибка удаления")
+        status = "Ошибка удаления Модели : " + statusmodelToDelete
+
+
+    return  render_template("delitem.html", status = status)
+
+
 
 
 @app.route('/deltype', methods = ['POST'])
@@ -162,6 +182,30 @@ def addtype():
             print("Ошибка добавления адреса в базу")
 
     return render_template("type.html", list_type = list_type)
+
+# Добавление моделей
+@app.route('/modeli', methods=['POST', 'GET'])
+def addmodeli():
+    list_models = db.session.query(Model).order_by("model").all()
+    form = ModelFormAdd()
+    if form.validate_on_submit():
+        try:
+            model = form.model.data
+            model = runupmodel(model)
+            modl = Model(model=model)
+            db.session.add(modl)
+            db.session.flush()
+            db.session.commit()
+            return redirect(url_for('addmodeli'))
+
+        except:
+            db.session.rollback()
+            print("Ошибка добавления модели в базу")
+            flash("Ошибка добавления адреса в базу", "error")
+            return redirect(url_for("addmodeli"))
+
+
+    return render_template("modeli.html", list_models=list_models, title="Справочник Моделей", form=form)
 
 
 @app.route('/files', methods = ['POST'])

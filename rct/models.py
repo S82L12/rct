@@ -89,6 +89,8 @@ class Ipaddr(db.Model):
     servers = db.relationship('Server', backref='serverip', uselist = False)
 
 
+
+
 class Vlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_vl = db.Column(db.Integer, nullable=False, comment='id_vlan', unique=True)
@@ -99,16 +101,28 @@ class Vlan(db.Model):
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
     type_id = db.Column(db.Integer, db.ForeignKey('type.id'))
 
+
+
+
+
 class Device(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     id_aiu = db.Column(db.String(10), comment='ID_AIU', nullable=False, unique=True)
     place_id = db.Column(db.Integer, db.ForeignKey('place.id'))
     cam_type = db.Column(db.String(40), default='no', comment='type')
-    vendor = db.Column(db.String(40), default='hikvision', comment='vendor')
-    model = db.Column(db.String(40), default='no', comment='vendor') #########
+
+    #model = db.Column(db.String(40), default='no', comment='vendor') #########
     ipaddr_id = db.Column(db.Integer, db.ForeignKey('ipaddr.id'),  unique=True)
     server_id = db.Column(db.Integer, db.ForeignKey('server.id'))
     ######### mac
+
+
+class Model(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    model = db.Column(db.String(40), unique=True)
+    vendor = db.Column(db.String(40), comment='vendor')  # необходимо вычислять его автоматически
+
+
 
 
 class Switch(db.Model, TimestampMixin):
@@ -292,6 +306,14 @@ def runupaddr(small_address):
     small_address = small_address.title()
     return small_address
 
+def runupmodel(model):
+    """Удаление пробелов и все буквы заглавные"""
+    model = model.strip()
+    model = model.upper()
+    return model
+
+
+
 def check_if_ip_is_network(ipnet, netmask):
     ip_address = str(ipnet) + '/' + str(netmask)
     try:
@@ -299,3 +321,5 @@ def check_if_ip_is_network(ipnet, netmask):
         return True
     except:
         return False
+
+
