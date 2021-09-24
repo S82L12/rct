@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile
+from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile,check_if_ip_is_network
 from transliterate import translit
 import os
 from rct.forms import LocationFormAdd
@@ -106,21 +106,25 @@ def addvlans():
     list_type =  db.session.query(Type).all()
     if request.method == "POST":
         try:
-            addr = db.session.query(Address).filter_by(small_address=request.form['addrlist']).one()
-            type = db.session.query(Type).filter_by(type=request.form['typelist']).one()
-            vlan = Vlan(id_vl=request.form['addvlanid'], name=request.form['addvlanname'], address_id = addr.id, type_id = type.id)
-            db.session.add(vlan)
-            db.session.flush()
-            db.session.commit()
-            list_vlans = db.session.query(Vlan).order_by("id_vl").all()
-            list_type = db.session.query(Type).all()
+            if check_if_ip_is_network(request.form['addipnet'],request.form['addipnetmask']):
+                addr = db.session.query(Address).filter_by(small_address=request.form['addrlist']).one()
+                type = db.session.query(Type).filter_by(type=request.form['typelist']).one()
+                vlan = Vlan(id_vl=request.form['addvlanid'], name=request.form['addvlanname'], address_id = addr.id, type_id = type.id, ipnet=request.form['addipnet'], netmask=request.form['addipnetmask'])
+                db.session.add(vlan)
+                db.session.flush()
+                db.session.commit()
+                list_vlans = db.session.query(Vlan).order_by("id_vl").all()
+                list_type = db.session.query(Type).all()
+            else:
+                flash("Проверьте правильность адреса подсети", "error")
+                print("Проверьте правильность адреса подсети")
         except:
             db.session.rollback()
             print("Ошибка добавления адреса в базу")
 
 
 
-    return render_template("vlans.html", list_address = list_address, list_vlans = list_vlans, list_type = list_type)
+    return render_template("vlans.html", list_address = list_address, list_vlans = list_vlans, list_type = list_type, title = 'Добавление Vlan & IpNetwork')
 
 
 @app.route('/address', methods = ['POST', 'GET'])
@@ -177,7 +181,7 @@ def downloadFile ():
     # Загрузка из файла
     # from vlan
     elif request.form['btnfiles'] == 'uploadvlans':
-        try:
+       try:
             file = request.files['file']
             if not file.filename:
                 status = "Проверьте имя файла"
@@ -191,9 +195,9 @@ def downloadFile ():
 
                 return render_template("statuspage.html", status_list =vlanFromFile(filename, app))
 
-        except:
-            status = "Что-то пошло не так :("
-            return render_template("delitem.html", status=status)
+       except:
+           status = "Что-то пошло не так :("
+           return render_template("delitem.html", status=status)
 
 
     # from address

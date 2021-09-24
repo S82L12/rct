@@ -25,4 +25,4 @@ backref OK
 Добавление поля translate в адресс OK
 Добавление функции translate в адресс OK
 добавления WTFORM location OK
-vlan+IPnet
+vlan+IPnet OK

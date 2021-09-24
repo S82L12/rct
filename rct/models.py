@@ -6,6 +6,7 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Date,
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import openpyxl
+import ipaddress
 from transliterate import translit
 
 db = SQLAlchemy()
@@ -92,6 +93,8 @@ class Vlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_vl = db.Column(db.Integer, nullable=False, comment='id_vlan', unique=True)
     name = db.Column(db.String(14), nullable=False, comment='name_vlan', unique=True)
+    ipnet = db.Column(db.String(20), comment='ip_network', unique=True)
+    netmask = db.Column(db.Integer, comment='network_mask')
     placeses = db.relationship('Place', backref = 'vlanplace')
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
     type_id = db.Column(db.Integer, db.ForeignKey('type.id'))
@@ -102,9 +105,10 @@ class Device(db.Model, TimestampMixin):
     place_id = db.Column(db.Integer, db.ForeignKey('place.id'))
     cam_type = db.Column(db.String(40), default='no', comment='type')
     vendor = db.Column(db.String(40), default='hikvision', comment='vendor')
-    model = db.Column(db.String(40), default='no', comment='vendor')
+    model = db.Column(db.String(40), default='no', comment='vendor') #########
     ipaddr_id = db.Column(db.Integer, db.ForeignKey('ipaddr.id'),  unique=True)
     server_id = db.Column(db.Integer, db.ForeignKey('server.id'))
+    ######### mac
 
 
 class Switch(db.Model, TimestampMixin):
@@ -135,7 +139,10 @@ def vlanFromFile(filename, app):
     head_dict = {
         "VLAN ID": "VLAN ID",
         "Имя VLAN": "Имя VLAN",
-        "Адрес": "Адрес",
+        "Адрес" : "Адрес",
+        "IP СЕТИ" : "IP СЕТИ" ,
+        "Mask": "Mask",
+        "Тип": "Тип",
         "Статус" : "Статус"}
 
     status_list.append(head_dict)
@@ -147,26 +154,40 @@ def vlanFromFile(filename, app):
         name = sheet.cell(row=i, column=2).value
         status_dict["name"] = name
         type = sheet.cell(row=i, column=3).value
-        small_address = sheet.cell(row=i, column=4).value
+        small_address = (sheet.cell(row=i, column=4).value).strip()
+        ipnet = (sheet.cell(row=i, column=5).value).strip()
+        netmask = (sheet.cell(row=i, column=6).value)
+
+
+
 
         small_address = small_address.strip()
+
         addr = Address.query.filter(Address.small_address.contains(small_address)).first()
-        if addr:
+        if addr and check_if_ip_is_network(ipnet, netmask):
             status_dict['address'] = addr.small_address
+            status_dict['ipnet'] = ipnet
+            status_dict['netmask'] = netmask
             type = Type.query.filter(Type.type.contains(type)).first()
             if type:
+
                 status_dict['type'] = type.type
+
                 try:
-                    vlan = Vlan(id_vl=id_vl, name=name, address_id=addr.id, type_id=type.id)
+                    vlan = Vlan(id_vl=id_vl, name=name, address_id=addr.id, type_id=type.id, ipnet = ipnet, netmask = netmask)
                     db.session.add(vlan)
                     db.session.flush()
                     db.session.commit()
+
                     status_dict['status'] = "Добавлено в базу"
                 except:
                     db.session.rollback()
                     status_dict['status'] = "Ошибка добавления"
         else:
             status_dict['address'] = small_address
+            status_dict['ipnet'] = check_if_ip_is_network(ipnet, netmask)
+            status_dict['mask'] = check_if_ip_is_network(ipnet, netmask)
+            status_dict['type'] = type
             status_dict['status'] = "Необходимо добавить адрес в базу"
         status_list.append(status_dict)
 
@@ -270,3 +291,11 @@ def runupaddr(small_address):
     small_address = small_address.strip()
     small_address = small_address.title()
     return small_address
+
+def check_if_ip_is_network(ipnet, netmask):
+    ip_address = str(ipnet) + '/' + str(netmask)
+    try:
+        ipaddress.ip_network(ip_address)
+        return True
+    except:
+        return False

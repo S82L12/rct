@@ -40,6 +40,8 @@ Vlans
               <th scope="col">Имя VLAN</th>
               <th scope="col">Адрес</th>
               <th scope="col">Тип Устройства</th>
+              <th scope="col">IP адрес сети</th>
+              <th scope="col">Маска</th>
               <th scope="col">Удалить</th>
 
             </tr>
@@ -65,9 +67,24 @@ Vlans
                       {% endfor %}
                   </select>
               </td>
+                <td><input class="form-control form-control-dark w-100" name="addipnet" id="search" type="text" placeholder="Адрес подсети" aria-label="Search"></td>
+                <td><input class="form-control form-control-dark w-100" name="addipnetmask" id="search" type="text" placeholder="Маска" aria-label="Search"></td>
                 <td><button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
             </tr>
           </form>
+
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+
+                    {% for category, message in messages %}
+          <tr><p class="text-danger">{{ message }}</p></tr>
+
+                    {% endfor %}
+
+            {% endif %}
+          {% endwith %}
+
+
 
           {% for i in list_vlans %}
           <form action = "/delvlans" method = "POST" name="{{i.id}}">
@@ -76,6 +93,8 @@ Vlans
               <td>{{i.name}}</td>
               <td>{{i.addressvlans.small_address}}</td>
                 <td>{{i.typevlans.type}}</td>
+                <td>{{i.ipnet}}</td>
+                <td>{{i.netmask}}</td>
               <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
             </tr></form>
               {%  endfor %}
