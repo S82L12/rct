@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel
+from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile
 import rct.models
 from transliterate import translit
 import os
@@ -189,20 +189,20 @@ def addmodeli():
     list_models = db.session.query(Model).order_by("model").all()
     form = ModelFormAdd()
     if form.validate_on_submit():
-        try:
+        #try:
             model = form.model.data
             model = runupmodel(model)
-            modl = Model(model=model)
+            modl = Model(model, vendor="unknow")
             db.session.add(modl)
             db.session.flush()
             db.session.commit()
             return redirect(url_for('addmodeli'))
 
-        except:
-            db.session.rollback()
-            print("Ошибка добавления модели в базу")
-            flash("Ошибка добавления адреса в базу", "error")
-            return redirect(url_for("addmodeli"))
+        # except:
+        #     db.session.rollback()
+        #     print("Ошибка добавления модели в базу")
+        #     flash("Ошибка добавления адреса в базу", "error")
+        #     return redirect(url_for("addmodeli"))
 
 
     return render_template("modeli.html", list_models=list_models, title="Справочник Моделей", form=form)
@@ -221,6 +221,10 @@ def downloadFile ():
     # - location.xlsx
     elif request.form['btnfiles'] == 'downloadlocat':
         return send_file(app.config['DOWNLOAD_LOCAT_FOLDER'], as_attachment=True)
+    # - Modeli.xlsx
+    elif request.form['btnfiles'] == 'downloadmodeli':
+        return send_file(app.config['DOWNLOAD_MODEL_FOLDER'], as_attachment=True)
+
 
     # Загрузка из файла
     # from vlan
@@ -263,7 +267,7 @@ def downloadFile ():
 
     # from locat
     elif request.form['btnfiles'] == 'uploadlocat':
-        #try:
+        try:
             file = request.files['file']
             if not file.filename:
                 status = "Проверьте имя файла"
@@ -272,16 +276,32 @@ def downloadFile ():
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                # status = str(filename) + " Успешно загружен"
-                # return  render_template("delitem.html", status = status)
+
 
                 return render_template("statuspage.html", status_list=locatFromFile(filename, app))
 
-        # except:
-        #     status = "Что-то пошло не так :("
-        #     return render_template("delitem.html", status=status)
+        except:
+            status = "Что-то пошло не так :("
+            return render_template("delitem.html", status=status)
+
+    # from modeli
+    elif request.form['btnfiles'] == 'uploadmodeli':
+        try:
+            file = request.files['file']
+            if not file.filename:
+                status = "Проверьте имя файла"
+                return render_template("delitem.html", status=status)
+
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
 
+                return render_template("statuspage.html", status_list=modeliFromFile(filename, app))
+
+        except:
+            status = "Что-то пошло не так :("
+            return render_template("delitem.html", status=status)
 
 
 @app.route('/location', methods = ['POST', 'GET'])

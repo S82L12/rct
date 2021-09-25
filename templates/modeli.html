@@ -35,10 +35,10 @@
 
      <form method="POST" enctype=multipart/form-data action="/files">
         <div class="pb-1" >
-        <button type="submit" name ="btnfiles" value="downloadmodels" class="btn btn-secondary ">Загрузить шаблон EXCEL</button>
+        <button type="submit" name ="btnfiles" value="downloadmodeli" class="btn btn-secondary ">Загрузить шаблон EXCEL</button>
         </div>
         <div class="pb-1" >
-        <button type="submit" name ="btnfiles" value="uploadmodels" class="btn btn-secondary ">Загрузить модели из файла EXCEL</button>
+        <button type="submit" name ="btnfiles" value="uploadmodeli" class="btn btn-secondary ">Загрузить модели из файла EXCEL</button>
         </div>
         <p><input type="file" name="file"></p>
     </form>
@@ -48,6 +48,8 @@
           <thead>
             <tr>
               <th scope="col">Модели</th>
+              <th scope="col">VENDOR</th>
+               <th scope="col">ДЕЙСТВИЯ</th>
             </tr>
           </thead>
           <tbody>
@@ -56,6 +58,7 @@
               {{ form.hidden_tag() }}
             <tr>
               <td>{{form.model(class="form-control form-control-dark w-100" ) }}</td>
+                <td>Автоматическое определение</td>
               <td>{{form.submit(class="btn btn-dark btn-sm" )}}</td>
             </tr>
           </form>
@@ -71,7 +74,7 @@
           <form action = "/delmodel" method = "POST"">
             <tr>
               <td>{{i.model}}</td>
-
+              <td>{{i.vendor}}</td>
               <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
             </tr></form>
 

@@ -48,6 +48,7 @@ class Type(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String(7),unique=True)
     vlans = db.relationship('Vlan', backref='typevlans')
+    devises = relationship("Device", backref="typedevice")
 
 
 
@@ -81,12 +82,12 @@ class Server(db.Model):
     ipaddr_id = db.Column(db.Integer, db.ForeignKey('ipaddr.id'))
     devices = db.relationship('Device', backref='deviceserver')
 
-
-class Ipaddr(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    ipaddr = db.Column(db.String(26), default='0.0.0.0', comment='ipaddr')
-    devices = db.relationship('Device', backref='deviceip', uselist = False)
-    servers = db.relationship('Server', backref='serverip', uselist = False)
+# НЕ будем использовать
+# class Ipaddr(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     ipaddr = db.Column(db.String(26), default='0.0.0.0', comment='ipaddr')
+#     devices = db.relationship('Device', backref='deviceip', uselist = False)
+#     servers = db.relationship('Server', backref='serverip', uselist = False)
 
 
 
@@ -100,6 +101,7 @@ class Vlan(db.Model):
     placeses = db.relationship('Place', backref = 'vlanplace')
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
     type_id = db.Column(db.Integer, db.ForeignKey('type.id'))
+    model_id = db.Column(db.Integer, db.ForeignKey('model.id'))
 
 
 
@@ -108,12 +110,20 @@ class Vlan(db.Model):
 class Device(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     id_aiu = db.Column(db.String(10), comment='ID_AIU', nullable=False, unique=True)
-    place_id = db.Column(db.Integer, db.ForeignKey('place.id'))
-    cam_type = db.Column(db.String(40), default='no', comment='type')
+    mac = db.Column(db.String(16), comment='mac', unique=True)
+    ip = db.Column(db.String(10), comment='ip')
+    mask = db.Column(db.String(10), comment='mask')
+    docs = db.Column(db.String(100), comment='Накладная')
+    type_id = db.Column(db.Integer, db.ForeignKey('type.id'))
+    model_id = db.Column(db.Integer, db.ForeignKey('model.id'))
+
+
+
 
     #model = db.Column(db.String(40), default='no', comment='vendor') #########
     ipaddr_id = db.Column(db.Integer, db.ForeignKey('ipaddr.id'),  unique=True)
     server_id = db.Column(db.Integer, db.ForeignKey('server.id'))
+    place_id = db.Column(db.Integer, db.ForeignKey('place.id'))
     ######### mac
 
 
@@ -121,8 +131,17 @@ class Model(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model = db.Column(db.String(40), unique=True)
     vendor = db.Column(db.String(40), comment='vendor')  # необходимо вычислять его автоматически
+    devices = relationship("Device", backref="modeldevice")
 
 
+    def __init__(self, model, vendor):
+        self.model = model
+        if 'DS-2' in str(model):
+            vendor = "hikvision"
+        self.vendor = vendor
+
+    def __repr__(self):
+        return '<Model %r>' % self.model
 
 
 class Switch(db.Model, TimestampMixin):
@@ -206,6 +225,51 @@ def vlanFromFile(filename, app):
         status_list.append(status_dict)
 
     return status_list
+
+def modeliFromFile(filename, app):
+    source_excel = app.config['UPLOAD_FOLDER'] + '/' + filename
+    wb = openpyxl.load_workbook(source_excel)
+    sheet = wb.active
+    rows = sheet.max_row
+    cols = sheet.max_column
+    status_list = []
+
+    head_dict = {
+        "Модель": "Модель",
+        "Статус": "Статус"
+    }
+
+    status_list.append(head_dict)
+
+    for i in range(2, rows + 1):
+        status_dict = {}
+
+        model = sheet.cell(row=i, column=1).value
+        model = runupmodel(model)
+        status_dict["modeli"] = model
+
+        modelstatus = Model.query.filter(Model.model.contains(model)).first()
+        if modelstatus:
+            status_dict['status'] = 'Модель уже существует'
+
+        else:
+           try:
+               model = Model(model, vendor="unknow")
+               db.session.add(model)
+
+               db.session.flush()
+               db.session.commit()
+               status_dict['status'] = "Добавлено в базу"
+           except:
+               db.session.rollback()
+               status_dict['status'] = "Ошибка добавления"
+
+        status_list.append(status_dict)
+
+    return status_list
+
+
+
 
 def locatFromFile(filename, app):
     source_excel = app.config['UPLOAD_FOLDER'] + '/' + filename
