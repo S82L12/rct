@@ -83,11 +83,11 @@ class Server(db.Model):
     devices = db.relationship('Device', backref='deviceserver')
 
 # НЕ будем использовать
-# class Ipaddr(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     ipaddr = db.Column(db.String(26), default='0.0.0.0', comment='ipaddr')
-#     devices = db.relationship('Device', backref='deviceip', uselist = False)
-#     servers = db.relationship('Server', backref='serverip', uselist = False)
+class Ipaddr(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ipaddr = db.Column(db.String(26), default='0.0.0.0', comment='ipaddr')
+    devices = db.relationship('Device', backref='deviceip', uselist = False)
+    servers = db.relationship('Server', backref='serverip', uselist = False)
 
 
 

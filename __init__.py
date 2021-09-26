@@ -152,9 +152,11 @@ def addaddress():
     list_addreses = db.session.query(Address).order_by("small_address").all()
     if request.method == "POST":
         try:
+            #addr = request.form   ТАК ТОЖЕ РАБОТАЕТ !!!!!
             small_address = runupaddr(request.form['small_address'])
             translate = translit(small_address, language_code='ru', reversed=True)
             translate = translate.replace("'", "")
+            #address = Address(**addr, translate = translate)   ТАК ТОЖЕ РАБОТАЕТ !!!!!
             address = Address(small_address = small_address, rgis_address = request.form['rgis_address'], translate = translate)
             db.session.add(address)
             db.session.flush()
@@ -189,7 +191,7 @@ def addmodeli():
     list_models = db.session.query(Model).order_by("model").all()
     form = ModelFormAdd()
     if form.validate_on_submit():
-        #try:
+        try:
             model = form.model.data
             model = runupmodel(model)
             modl = Model(model, vendor="unknow")
@@ -198,11 +200,11 @@ def addmodeli():
             db.session.commit()
             return redirect(url_for('addmodeli'))
 
-        # except:
-        #     db.session.rollback()
-        #     print("Ошибка добавления модели в базу")
-        #     flash("Ошибка добавления адреса в базу", "error")
-        #     return redirect(url_for("addmodeli"))
+        except:
+            db.session.rollback()
+            print("Ошибка добавления модели в базу")
+            flash("Ошибка добавления адреса в базу", "error")
+            return redirect(url_for("addmodeli"))
 
 
     return render_template("modeli.html", list_models=list_models, title="Справочник Моделей", form=form)
@@ -308,21 +310,23 @@ def downloadFile ():
 def location():
     list_locations = db.session.query(Location).order_by("small_location").all()
     form = LocationFormAdd()
+
     if form.validate_on_submit():
        try:
-            small_location = form.small_location.data
-            location = Location(small_location=small_location)
-            db.session.add(location)
-            db.session.flush()
-            db.session.commit()
-            list_locations = db.session.query(Location).order_by("small_location").all()
-            return redirect(url_for("location"))
-
+           print(fo)
+           small_location = form.small_location.data
+           location = Location(small_location=small_location)
+           db.session.add(location)
+           db.session.flush()
+           db.session.commit()
+           list_locations = db.session.query(Location).order_by("small_location").all()
+           # ВОТ ДО СЮДА
+           return redirect(url_for("location"))
        except:
-            db.session.rollback()
-            print("Ошибка добавления адреса в базу")
-            flash("Ошибка добавления адреса в базу", "error")
-            return redirect(url_for("location"))
+           db.session.rollback()
+           print("Ошибка добавления адреса в базу")
+           flash("Ошибка добавления адреса в базу", "error")
+           return redirect(url_for("location"))
 
     return render_template("location.html", list_locations = list_locations, title = 'Локация', form = form)
 
