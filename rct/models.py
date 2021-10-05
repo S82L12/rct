@@ -136,6 +136,8 @@ class Model(db.Model):
         self.model = model
         if 'DS-2' in str(model):
             vendor = "hikvision"
+        elif 'VTO' in str(model):
+            vendor = "dahua"
         self.vendor = vendor
 
     def __repr__(self):
@@ -280,10 +282,10 @@ def deviceFromFile(filename, app):
 
     head_dict = {
         "Id_АИЮ": "Id_АИЮ",
-        "type": "Тип",
-        "Mac":"Mac",
-        "model":"Модель",
+        "Mac": "Mac",
         "Накладная":"Накладная",
+        "Тип": "Тип",
+        "Модель": "Модель",
         "status": "Статус"
     }
 
@@ -302,11 +304,11 @@ def deviceFromFile(filename, app):
             if id_aiustatus:
 
                 status_dict["Id_АИЮ"] = id_aiu
-                status_dict["type"] = '---'
+                status_dict["Тип"] = '---'
                 status_dict["mac"] = '---'
-                status_dict["model"] = '---'
+                status_dict["Модель"] = '---'
                 status_dict["Накладная"] = '---'
-                status_dict['status'] = 'Такой ID уже существует'
+                status_dict["status"] = 'Такой ID уже существует'
 
 
             else:
@@ -328,35 +330,39 @@ def deviceFromFile(filename, app):
 
                 model = Model.query.filter(Model.model.contains(model)).first()
                 if type:
-                    status_dict['type'] = type.type
+                    status_dict["Тип"] = type.type
 
                     if model:
-                        status_dict['model'] = model.model
+                        status_dict["Модель"] = model.model
 
                         try:
+                            status_dict["Тип"] = type.type
+                            status_dict["Накладная"] = docs
                             dev = Device(id_aiu=id_aiu, mac=mac, docs=docs, type_id=type.id, model_id=model.id)
                             db.session.add(dev)
                             db.session.flush()
                             db.session.commit()
 
+
+                            status_dict["status"] = "Успешно добавлено В БД"
                         except:
                             db.session.rollback()
-                            status_dict['status'] = "Ошибка добавления"
+                            status_dict["status"] = "Ошибка добавления"
 
                     else:
 
-                        status_dict["type"] = '---'
-                        status_dict['model'] = (sheet.cell(row=i, column=5).value).strip()
+                        status_dict["Тип"] = '---'
+                        status_dict["Модель"] = (sheet.cell(row=i, column=5).value).strip()
                         status_dict["Накладная"] = '---'
-                        status_dict['status'] = "Добавьте модель в базу"
+                        status_dict["status"] = "Добавьте модель в базу"
 
 
                 else:
-                    status_dict['type'] = 'ошибка'
-                    status_dict['status'] = 'неверно указан тип'
+                    status_dict["Тип"] = 'ошибка'
+                    status_dict["status"] = 'неверно указан тип'
                     status_dict["mac"] = '---'
                     status_dict["Накладная"] = '---'
-                    status_dict["model"] = '---'
+                    status_dict["Модель"] = '---'
 
         # Добавление в список словаря по каждому экземпляру (по строке из файла)
         status_list.append(status_dict)
