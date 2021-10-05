@@ -119,10 +119,6 @@ class Device(db.Model, TimestampMixin):
     type_id = db.Column(db.Integer, db.ForeignKey('type.id'))
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'))
     place_id = db.Column(db.Integer, db.ForeignKey('place.id'))
-
-
-
-    #model = db.Column(db.String(40), default='no', comment='vendor') #########
     ipaddr_id = db.Column(db.Integer, db.ForeignKey('ipaddr.id'),  unique=True)
     server_id = db.Column(db.Integer, db.ForeignKey('server.id'))
 
@@ -284,41 +280,85 @@ def deviceFromFile(filename, app):
 
     head_dict = {
         "Id_АИЮ": "Id_АИЮ",
-        "Тип": "Тип",
+        "type": "Тип",
         "Mac":"Mac",
-        "Модель":"Модель",
-        "№ накладной":"№ накладной",
-        "№ склада": "№ склада",
-        "Статус": "Статус",
-
+        "model":"Модель",
+        "Накладная":"Накладная",
+        "status": "Статус"
     }
 
     status_list.append(head_dict)
 
     for i in range(2, rows + 1):
+        print(i)
         status_dict = {}
 
+
+        # ID DEVICE  NO: преобразование проверка и тд
         id_aiu = sheet.cell(row=i, column=1).value
-        status_dict["Id_АИЮ"] = id_aiu
+        if id_aiu:
+            id_aiustatus = Device.query.filter(Device.id_aiu.contains(id_aiu)).first()
+            # Проверка: если ID уществует, то нет смысла идти дальше
+            if id_aiustatus:
+
+                status_dict["Id_АИЮ"] = id_aiu
+                status_dict["type"] = '---'
+                status_dict["mac"] = '---'
+                status_dict["model"] = '---'
+                status_dict["Накладная"] = '---'
+                status_dict['status'] = 'Такой ID уже существует'
 
 
+            else:
+                status_dict["Id_АИЮ"] = id_aiu
 
-        id_aiustatus = Device.query.filter(Device.id_aiu.contains(id_aiu)).first()
-        if id_aiustatus:
-            status_dict['status'] = 'Такой ID уже существует'
+                # Работа с mac
+                mac =  sheet.cell(row=i, column=2).value
+                mac = check_if_mac_aiu(mac)
+                status_dict["Mac"] = mac
 
-        else:
-           try:
-               id_aiu = Device(id_aiu, vendor="unknow")
-               db.session.add(model)
+                # Работа с Накладной
+                docs = sheet.cell(row=i, column=3).value
+                status_dict["Накладная"] = docs
 
-               db.session.flush()
-               db.session.commit()
-               status_dict['status'] = "Добавлено в базу"
-           except:
-               db.session.rollback()
-               status_dict['status'] = "Ошибка добавления"
+                # Работа с типом устройства и моделью устройства => ОБЯЗАТЕЛЬНО
+                type = (sheet.cell(row=i, column=4).value).strip()
+                type = Type.query.filter(Type.type.contains(type)).first()
+                model = (sheet.cell(row=i, column=5).value).strip()
 
+                model = Model.query.filter(Model.model.contains(model)).first()
+                if type:
+                    status_dict['type'] = type.type
+
+                    if model:
+                        status_dict['model'] = model.model
+
+                        try:
+                            dev = Device(id_aiu=id_aiu, mac=mac, docs=docs, type_id=type.id, model_id=model.id)
+                            db.session.add(dev)
+                            db.session.flush()
+                            db.session.commit()
+
+                        except:
+                            db.session.rollback()
+                            status_dict['status'] = "Ошибка добавления"
+
+                    else:
+
+                        status_dict["type"] = '---'
+                        status_dict['model'] = (sheet.cell(row=i, column=5).value).strip()
+                        status_dict["Накладная"] = '---'
+                        status_dict['status'] = "Добавьте модель в базу"
+
+
+                else:
+                    status_dict['type'] = 'ошибка'
+                    status_dict['status'] = 'неверно указан тип'
+                    status_dict["mac"] = '---'
+                    status_dict["Накладная"] = '---'
+                    status_dict["model"] = '---'
+
+        # Добавление в список словаря по каждому экземпляру (по строке из файла)
         status_list.append(status_dict)
 
     return status_list
@@ -419,6 +459,8 @@ def addrFromFile(filename, app, translit):
     return status_list
 #####
 
+
+
 def runupaddr(small_address):
     """Удаление пробелов и добавление заглавной буквы"""
     small_address = small_address.strip()
@@ -439,22 +481,24 @@ def check_if_id_aiu(id_aiu):
 def check_if_mac_aiu(mac):
     """проверка mac и возврат к 00:00:00"""
     # Удяляем пробелы и делаем все буквы заглавными
-    mac = mac.strip()
-    # Приводим к виду :
-    macd = ''
-    mac_re = re.compile(r'\w{2}')
-    mac_i = mac_re.findall(mac)
-    for i in mac_i:
-        macd = macd + str(i) + ':'
-    mac = (macd[0:17]).lower()
+    if mac:
+        mac = mac.strip()
+        # Приводим к виду :
+        macd = ''
+        mac_re = re.compile(r'\w{2}')
+        mac_i = mac_re.findall(mac)
+        for i in mac_i:
+            macd = macd + str(i) + ':'
+        mac = (macd[0:17]).lower()
 
-    # переводим в верхней регистр
-    mac = mac.upper()
-    mac_re = re.compile(r'^([0-9A-F]{1,2})(\:[0-9A-F]{1,2}){5}$')
-    if mac_re.search(mac) is not None:
-        return mac
-    else:
-        return None
+        # переводим в верхней регистр
+        mac = mac.upper()
+        mac_re = re.compile(r'^([0-9A-F]{1,2})(\:[0-9A-F]{1,2}){5}$')
+        if mac_re.search(mac) is not None:
+            return mac
+        else:
+            return None
+    return None
 
 
 def check_if_ip_aiu(ip):

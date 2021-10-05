@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu
+from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu, deviceFromFile
 import rct.models
 from transliterate import translit
 import os
@@ -264,7 +264,7 @@ def addmodeli():
 
     return render_template("modeli.html", list_models=list_models, title="Справочник Моделей", form=form)
 
-
+# Выгрузка файла на ПК , выгрузка файла
 @app.route('/files', methods = ['POST'])
 def downloadFile ():
     """Обработчик загрузки и выгрузки файлов"""
@@ -307,6 +307,22 @@ def downloadFile ():
            status = "Что-то пошло не так :("
            return render_template("delitem.html", status=status)
 
+    # From Devices
+    elif request.form['btnfiles'] == 'uploaddevices':
+       try:
+            file = request.files['file']
+            if not file.filename:
+                status = "Проверьте имя файла"
+                return render_template("delitem.html", status=status)
+
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                return render_template("statuspage.html", status_list =deviceFromFile(filename, app))
+
+       except:
+           status = "Что-то пошло не так :("
+           return render_template("delitem.html", status=status)
 
     # from address
     elif request.form['btnfiles'] == 'uploadaddress':
@@ -362,6 +378,7 @@ def downloadFile ():
         except:
             status = "Что-то пошло не так :("
             return render_template("delitem.html", status=status)
+
 
 
 @app.route('/location', methods = ['POST', 'GET'])
