@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile
+from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu
 import rct.models
 from transliterate import translit
 import os
@@ -118,6 +118,25 @@ def deladdr():
 
     return  render_template("delitem.html", status = status)
 
+@app.route('/deldevice', methods = ['POST'])
+def deldevice():
+
+    try:
+        devToDelete = Device.query.get(request.form['delbtn'])
+        statusdevToDelete = devToDelete.id_aiu
+        db.session.delete(devToDelete)
+        db.session.flush()
+        db.session.commit()
+        status = "Адрес: "+ statusdevToDelete +" Успешно удален"
+    except:
+        db.session.rollback()
+        print("Ошибка удаления")
+        status = "Ошибка удаления Адреса : " + statusdevToDelete
+
+
+    return  render_template("delitem.html", status = status)
+
+
 
 @app.route('/vlans', methods = ['POST', 'GET'])
 def addvlans():
@@ -145,6 +164,42 @@ def addvlans():
 
 
     return render_template("vlans.html", list_address = list_address, list_vlans = list_vlans, list_type = list_type, title = 'Добавление Vlan & IpNetwork')
+
+# Devices
+@app.route('/devices', methods = ['POST', 'GET'])
+def devices():
+    list_type = db.session.query(Type).order_by("type").all()
+    list_devices = db.session.query(Device).order_by("id_aiu").all()
+    list_models = db.session.query(Model).order_by("model").all()
+    if request.method == "POST":
+
+        type = db.session.query(Type).filter_by(type=request.form["typelist"]).one()
+        model = db.session.query(Model).filter_by(model=request.form["modelslist"]).one()
+        id_aiu = request.form["id_aiu"]
+        mac = request.form["addmac"]
+        mac = check_if_mac_aiu(mac)
+        docs = request.form["doc"]
+        try:
+            id_aiu = check_if_id_aiu(id_aiu)
+
+            #mac = check_if_mac_aiu(mac)
+            device = Device(id_aiu = id_aiu, mac = mac, docs=docs, type_id = type.id, model_id = model.id)
+            db.session.add(device)
+            db.session.flush()
+            db.session.commit()
+            list_devices = db.session.query(Device).order_by("id_aiu").all()
+            return redirect(url_for("devices"))
+
+        except:
+            db.session.rollback()
+            print("Ошибка добавления адреса в базу")
+            flash("Ошибка добавления адреса в базу", "error")
+            return redirect(url_for("devices"))
+
+    return render_template("devices.html", list_devices=list_devices, list_type = list_type, list_models= list_models, title='Устройства')
+
+
+
 
 
 @app.route('/address', methods = ['POST', 'GET'])
@@ -226,6 +281,9 @@ def downloadFile ():
     # - Modeli.xlsx
     elif request.form['btnfiles'] == 'downloadmodeli':
         return send_file(app.config['DOWNLOAD_MODEL_FOLDER'], as_attachment=True)
+    # - Devices.xlsx
+    elif request.form['btnfiles'] == 'downloaddevices':
+        return send_file(app.config['DOWNLOAD_DEVICE_FOLDER'], as_attachment=True)
 
 
     # Загрузка из файла
@@ -313,7 +371,7 @@ def location():
 
     if form.validate_on_submit():
        try:
-           print(fo)
+
            small_location = form.small_location.data
            location = Location(small_location=small_location)
            db.session.add(location)
@@ -336,6 +394,9 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
 
+
+def type_choices():
+    return db.session.query(Type).order_by("type").all()
 
 
 

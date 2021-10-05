@@ -7,6 +7,8 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import openpyxl
 import ipaddress
+import string
+import re
 from transliterate import translit
 
 db = SQLAlchemy()
@@ -111,19 +113,19 @@ class Device(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     id_aiu = db.Column(db.String(10), comment='ID_AIU', nullable=False, unique=True)
     mac = db.Column(db.String(16), comment='mac', unique=True)
-    ip = db.Column(db.String(10), comment='ip')
-    mask = db.Column(db.String(10), comment='mask')
-    docs = db.Column(db.String(100), comment='Накладная')
+    #ip = db.Column(db.String(10), comment='ip', default = '192.168.1.64')
+    #mask = db.Column(db.String(2), comment='mask', default = '24')
+    docs = db.Column(db.String(30), comment='Накладная')
     type_id = db.Column(db.Integer, db.ForeignKey('type.id'))
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'))
-
+    place_id = db.Column(db.Integer, db.ForeignKey('place.id'))
 
 
 
     #model = db.Column(db.String(40), default='no', comment='vendor') #########
     ipaddr_id = db.Column(db.Integer, db.ForeignKey('ipaddr.id'),  unique=True)
     server_id = db.Column(db.Integer, db.ForeignKey('server.id'))
-    place_id = db.Column(db.Integer, db.ForeignKey('place.id'))
+
     ######### mac
 
 
@@ -190,6 +192,7 @@ def vlanFromFile(filename, app):
         small_address = (sheet.cell(row=i, column=4).value).strip()
         ipnet = (sheet.cell(row=i, column=5).value).strip()
         netmask = (sheet.cell(row=i, column=6).value)
+
 
 
 
@@ -268,6 +271,57 @@ def modeliFromFile(filename, app):
 
     return status_list
 
+
+
+
+def deviceFromFile(filename, app):
+    source_excel = app.config['UPLOAD_FOLDER'] + '/' + filename
+    wb = openpyxl.load_workbook(source_excel)
+    sheet = wb.active
+    rows = sheet.max_row
+    cols = sheet.max_column
+    status_list = []
+
+    head_dict = {
+        "Id_АИЮ": "Id_АИЮ",
+        "Тип": "Тип",
+        "Mac":"Mac",
+        "Модель":"Модель",
+        "№ накладной":"№ накладной",
+        "№ склада": "№ склада",
+        "Статус": "Статус",
+
+    }
+
+    status_list.append(head_dict)
+
+    for i in range(2, rows + 1):
+        status_dict = {}
+
+        id_aiu = sheet.cell(row=i, column=1).value
+        status_dict["Id_АИЮ"] = id_aiu
+
+
+
+        id_aiustatus = Device.query.filter(Device.id_aiu.contains(id_aiu)).first()
+        if id_aiustatus:
+            status_dict['status'] = 'Такой ID уже существует'
+
+        else:
+           try:
+               id_aiu = Device(id_aiu, vendor="unknow")
+               db.session.add(model)
+
+               db.session.flush()
+               db.session.commit()
+               status_dict['status'] = "Добавлено в базу"
+           except:
+               db.session.rollback()
+               status_dict['status'] = "Ошибка добавления"
+
+        status_list.append(status_dict)
+
+    return status_list
 
 
 
@@ -363,6 +417,7 @@ def addrFromFile(filename, app, translit):
         status_list.append(status_dict)
 
     return status_list
+#####
 
 def runupaddr(small_address):
     """Удаление пробелов и добавление заглавной буквы"""
@@ -376,6 +431,36 @@ def runupmodel(model):
     model = model.upper()
     return model
 
+def check_if_id_aiu(id_aiu):
+    """проверка ID AIU regex   \d{4}$ and  ВП-(\d{2} |\d{2} | \d{3})$"""
+    print ('ID AIU',id_aiu)
+    return id_aiu
+
+def check_if_mac_aiu(mac):
+    """проверка mac и возврат к 00:00:00"""
+    # Удяляем пробелы и делаем все буквы заглавными
+    mac = mac.strip()
+    # Приводим к виду :
+    macd = ''
+    mac_re = re.compile(r'\w{2}')
+    mac_i = mac_re.findall(mac)
+    for i in mac_i:
+        macd = macd + str(i) + ':'
+    mac = (macd[0:17]).lower()
+
+    # переводим в верхней регистр
+    mac = mac.upper()
+    mac_re = re.compile(r'^([0-9A-F]{1,2})(\:[0-9A-F]{1,2}){5}$')
+    if mac_re.search(mac) is not None:
+        return mac
+    else:
+        return None
+
+
+def check_if_ip_aiu(ip):
+    """проверка ip  принадлежности его к сети, нужно передавать еще и место"""
+    pass
+    return ip
 
 
 def check_if_ip_is_network(ipnet, netmask):
@@ -385,5 +470,4 @@ def check_if_ip_is_network(ipnet, netmask):
         return True
     except:
         return False
-
 

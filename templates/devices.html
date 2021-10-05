@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Адреса
+{% endblock %}
+
+{% block body %}
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4"><div class="chartjs-size-monitor"><div class="chartjs-size-monitor-expand"><div class=""></div></div><div class="chartjs-size-monitor-shrink"><div class=""></div></div></div>
+      <form method="post">
+      <header  class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+      </form>
+  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" >ОШИБКИ:</a>
+    <a class="form-control form-control-dark w-100" name="search" id="search" type="text">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+    </a>
+  <ul class="navbar-nav px-3">
+    <li class="nav-item text-nowrap">
+
+
+    </li>
+  </ul>
+
+</header>
+    <h2>{{title}}</h2>
+
+     <form method="POST" enctype=multipart/form-data action="/files">
+        <div class="pb-1" >
+        <button type="submit" name ="btnfiles" value="downloaddevices" class="btn btn-secondary ">Загрузить шаблон EXCEL</button>
+        </div>
+        <div class="pb-1" >
+        <button type="submit" name ="btnfiles" value="uploaddevices" class="btn btn-secondary ">Загрузить список Устройств из файла EXCEL</button>
+        </div>
+        <p><input type="file" name="file"></p>
+    </form>
+
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th scope="col">ID_АИЮ</th>
+              <th scope="col">Тип устройства</th>
+              <th scope="col">MAC</th>
+              <th scope="col">Модель</th>
+              <th scope="col">Накладная</th>
+              <th scope="col">Действие</th>
+
+
+            </tr>
+          </thead>
+          <tbody>
+
+          <form method="post" name="adddeviceform " >
+            <tr>
+              <td><input class="form-control form-control-dark w-100" name="id_aiu"  type="text" placeholder="ID АИЮ" aria-label="Search"></td>
+              <td><select name="typelist" class="form-control form-control-dark w-100">
+                      <option>Тип</option>
+                      {% for i in list_type %}
+                      <option>{{i.type}}</option>
+                      {% endfor %}
+                  </select>
+              </td>
+              <td><input class="form-control form-control-dark w-100" name="addmac" type="text" placeholder="00:00:00:00:00:00"></td>
+              <td><select name="modelslist" class="form-control form-control-dark w-100">
+                      <option>Модель</option>
+                      {% for i in list_models %}
+                      <option>{{i.model}}</option>
+                      {% endfor %}
+                  </select></td>
+              <td><input class="form-control form-control-dark w-100" name="doc" type="text" placeholder="Номер и дата накладной"></td>
+              <td><button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
+
+            </tr>
+          </form>
+
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+
+                    {% for category, message in messages %}
+          <tr><p class="text-danger">{{ message }}</p></tr>
+
+                    {% endfor %}
+
+            {% endif %}
+          {% endwith %}
+
+
+            {% for i in list_devices %}
+
+          <form action = "/deldevice" method = "POST"">
+            <tr>
+              <td>{{i.id_aiu}}</td>
+              <td>{{i.typedevice.type}}</td>
+              <td>{{i.mac}}</td>
+              <td>{{i.modeldevice.model}}</td>
+              <td>{{i.docs}}</td>
+              <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
+            </tr></form>
+
+              {%  endfor %}
+
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+{% endblock %}
