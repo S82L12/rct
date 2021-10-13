@@ -26,6 +26,7 @@ backref OK
 Добавление функции translate в адресс OK
 добавления WTFORM location OK
 vlan+IPnet OK
+Устанавливаем pip install flask-migrate
 -------
 Требуется:
 1. Прописать фильтры для вендоров (VP е определяются)

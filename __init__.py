@@ -5,7 +5,10 @@ import rct.models
 from transliterate import translit
 import os
 from rct.forms import LocationFormAdd, ModelFormAdd
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
+#from flask_migrate import Migrate#, MigrateCommand
 
 
 app = Flask(__name__, instance_relative_config=True)
@@ -16,6 +19,13 @@ app.config.from_pyfile("config_ins.py")
 
 # Инициализируем объект приложения
 db.init_app(app)
+
+# создать экземпляр класса Migrate, передав экземпляр приложения (app) и объект SQLAlchemy (db)
+migrate = Migrate(app, db)
+#manager.add_command('db', MigrateCommand)
+
+
+
 
 # создаем все таблица в БД
 db.create_all(app=app)
@@ -416,6 +426,6 @@ def type_choices():
     return db.session.query(Type).order_by("type").all()
 
 
-
-if __name__ == "__main__":
-    app.run(debug = True)  # на этапе разработке True
+#
+# if __name__ == "__main__":
+#     app.run(debug = True)  # на этапе разработке True
