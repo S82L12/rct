@@ -160,6 +160,20 @@ class Port(db.Model, TimestampMixin):
     status = db.Column(db.String(10), default = 'off', comment = 'empty')
     link = db.Column(db.String(10), default = 'access', comment = 'uplink-downlink')
 
+# Предназначен для хранение основных параметров коммутатора, чтобы в автоматическом режиме создавать порты
+class ModelSwitch(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    modelsw = db.Column(db.String(10),unique=True, nullable=False, comment = 'Название модели')
+    qt_port = db.Column(db.Integer, default = 'None',comment = 'Кол-во портов всего')
+    list_combo_port =db.Column(db.String(50),default = 'None', comment = 'Список combo портов')
+    list_poe = db.Column(db.String(200),default = 'None', comment = 'Список poe портов')
+    list_eth = db.Column(db.String(40),default = 'None', comment='Список Ethernet портов')
+    list_cx = db.Column(db.String(40),default = 'None', comment = 'Список CX портов')
+    list_sfp = db.Column(db.String(200),default = 'None', comment = 'Список SFP портов')
+    list_sfp_plus = db.Column(db.String(200),default = 'None', comment='Список SFP+ портов')
+
+
+
 
 def vlanFromFile(filename, app):
     source_excel = app.config['UPLOAD_FOLDER']+'/' + filename
@@ -270,6 +284,57 @@ def modeliFromFile(filename, app):
     return status_list
 
 
+# Загрузка моделей коммутаторов из файла
+def modeliswFromFile(filename, app):
+    source_excel = app.config['UPLOAD_FOLDER'] + '/' + filename
+    wb = openpyxl.load_workbook(source_excel)
+    sheet = wb.active
+    rows = sheet.max_row
+    cols = sheet.max_column
+    status_list = []
+
+    head_dict = {
+        "Модель": "Модель",
+        "Статус": "Статус"
+    }
+
+    status_list.append(head_dict)
+
+    for i in range(2, rows + 1):
+        status_dict = {}
+
+        modelsw = sheet.cell(row=i, column=1).value
+        modelsw = runupmodel(modelsw)  # Пропускаем через функцию
+        status_dict["modelisw"] = modelsw
+
+        modelstatus = ModelSwitch.query.filter(ModelSwitch.modelsw.contains(modelsw)).first()
+        if modelstatus:
+            status_dict['status'] = 'Модель уже существует'
+
+        else:
+           try:
+
+               qt_port = sheet.cell(row=i, column=2).value
+               list_combo_port = sheet.cell(row=i, column=3).value
+               list_poe = sheet.cell(row=i, column=4).value
+               list_eth = sheet.cell(row=i, column=5).value
+               list_cx = sheet.cell(row=i, column=6).value
+               list_sfp = sheet.cell(row=i, column=7).value
+               list_sfp_plus = sheet.cell(row=i, column=8).value
+
+               modelsw = ModelSwitch(modelsw = modelsw, qt_port = qt_port, list_combo_port = list_combo_port, list_poe = list_poe, list_eth = list_eth, list_cx = list_cx, list_sfp = list_sfp, list_sfp_plus=list_sfp_plus)
+               db.session.add(modelsw)
+
+               db.session.flush()
+               db.session.commit()
+               status_dict['status'] = "Добавлено в базу"
+           except:
+               db.session.rollback()
+               status_dict['status'] = "Ошибка добавления"
+
+        status_list.append(status_dict)
+
+    return status_list
 
 
 def deviceFromFile(filename, app):

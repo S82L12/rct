@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu, deviceFromFile
-import rct.models
+from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu, deviceFromFile, ModelSwitch, modeliswFromFile
+
 from transliterate import translit
 import os
 from rct.forms import LocationFormAdd, ModelFormAdd
@@ -70,7 +70,24 @@ def delmodel():
 
     return  render_template("delitem.html", status = status)
 
+@app.route('/delmodelsw', methods = ['POST'])
+def delmodelsw():
+    try:
+        modelswToDelete = ModelSwitch.query.get(request.form['delbtn'])
 
+        status = modelswToDelete.modelsw
+
+        db.session.delete(modelswToDelete)
+        db.session.flush()
+        db.session.commit()
+        status = "Модель: " + status + " Успешно удалена"
+    except:
+        db.session.rollback()
+        print("Ошибка удаления")
+        status = "Ошибка удаления Модели "
+
+
+    return  render_template("delitem.html", status = status)
 
 
 @app.route('/deltype', methods = ['POST'])
@@ -274,6 +291,28 @@ def addmodeli():
 
     return render_template("modeli.html", list_models=list_models, title="Справочник Моделей", form=form)
 
+# Добавление моделей коммутаторов
+@app.route('/modelisw', methods=['POST', 'GET'])
+def addmodelisw():
+    list_models_sw = db.session.query(ModelSwitch).order_by("modelsw").all()
+
+    if request.method == "POST":
+        try:
+            model_sw = request.form
+            model_sw = ModelSwitch(**model_sw)
+            db.session.add(model_sw)
+            db.session.flush()
+            db.session.commit()
+            list_models_sw = db.session.query(ModelSwitch).order_by("modelsw").all()
+        except:
+            db.session.rollback()
+            flash("Ошибка добавления адреса в базу", "error")
+            print("Ошибка добавления адреса в базу")
+
+    return render_template("modelisw.html", list_models_sw=list_models_sw, title='Модели Коммутаторов')
+
+
+
 # Выгрузка файла на ПК , выгрузка файла
 @app.route('/files', methods = ['POST'])
 def downloadFile ():
@@ -291,6 +330,9 @@ def downloadFile ():
     # - Modeli.xlsx
     elif request.form['btnfiles'] == 'downloadmodeli':
         return send_file(app.config['DOWNLOAD_MODEL_FOLDER'], as_attachment=True)
+    # - Modelisw.xlsx
+    elif request.form['btnfiles'] == 'downloadmodelisw':
+        return send_file(app.config['DOWNLOAD_MODELSW_FOLDER'], as_attachment=True)
     # - Devices.xlsx
     elif request.form['btnfiles'] == 'downloaddevices':
         return send_file(app.config['DOWNLOAD_DEVICE_FOLDER'], as_attachment=True)
@@ -389,6 +431,24 @@ def downloadFile ():
             status = "Что-то пошло не так :("
             return render_template("delitem.html", status=status)
 
+    # from modelisw
+    elif request.form['btnfiles'] == 'uploadmodelisw':
+        try:
+            file = request.files['file']
+            if not file.filename:
+                status = "Проверьте имя файла"
+                return render_template("delitem.html", status=status)
+
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+                return render_template("statuspage.html", status_list=modeliswFromFile(filename, app))
+
+        except:
+            status = "Что-то пошло не так :("
+            return render_template("delitem.html", status=status)
+
 
 
 @app.route('/location', methods = ['POST', 'GET'])
@@ -426,6 +486,6 @@ def type_choices():
     return db.session.query(Type).order_by("type").all()
 
 
-#
-# if __name__ == "__main__":
-#     app.run(debug = True)  # на этапе разработке True
+
+if __name__ == "__main__":
+    app.run(debug = True)  # на этапе разработке True

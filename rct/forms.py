@@ -14,3 +14,6 @@ class ModelFormAdd(FlaskForm):
     model = StringField("small_location ", validators=[DataRequired(), Length(min=4, max=15)])
     submit = SubmitField("Добавить")
 
+class ModelswFormAdd(FlaskForm):
+    modelsw = StringField("small_location ", validators=[DataRequired(), Length(min=4, max=15)])
+    submit = SubmitField("Добавить")

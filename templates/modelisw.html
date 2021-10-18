@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Адреса
+{% endblock %}
+
+{% block body %}
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4"><div class="chartjs-size-monitor"><div class="chartjs-size-monitor-expand"><div class=""></div></div><div class="chartjs-size-monitor-shrink"><div class=""></div></div></div>
+      <form method="post">
+      <header  class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+      </form>
+  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" >ОШИБКИ:</a>
+    <a class="form-control form-control-dark w-100" name="search" id="search" type="text">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+    </a>
+  <ul class="navbar-nav px-3">
+    <li class="nav-item text-nowrap">
+
+
+    </li>
+  </ul>
+
+</header>
+    <h2>Работа с Моделями Коммутаторов</h2>
+
+     <form method="POST" enctype=multipart/form-data action="/files">
+        <div class="pb-1" >
+        <button type="submit" name ="btnfiles" value="downloadmodelisw" class="btn btn-secondary ">Загрузить шаблон EXCEL</button>
+        </div>
+        <div class="pb-1" >
+        <button type="submit" name ="btnfiles" value="uploadmodelisw" class="btn btn-secondary ">Загрузить модели из файла EXCEL</button>
+        </div>
+        <p><input type="file" name="file"></p>
+    </form>
+
+            <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th scope="col">Модель коммутатора</th>
+              <th scope="col">Кол-во портов</th>
+              <th scope="col">Список комбо портов</th>
+              <th scope="col">Список poe портов</th>
+              <th scope="col">Список Ethernet портов</th>
+              <th scope="col">Список CX портов</th>
+              <th scope="col">Список SFP портов</th>
+              <th scope="col">Список SFP+ портов</th>
+              <th scope="col">Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+             <form method="post">
+            <tr>
+              <td><input class="form-control form-control-dark w-100" name="modelsw" id="search" type="text" placeholder="Название модели" ></td>
+              <td><input class="form-control form-control-dark w-100" name="qt_port" id="search" type="text" placeholder="Кол-во портов всего" ></td>
+              <td><input class="form-control form-control-dark w-100" name="list_combo_port" id="search" type="text" placeholder="Список combo портов" ></td>
+              <td><input class="form-control form-control-dark w-100" name="list_poe" id="search" type="text" placeholder="Список poe портов" ></td>
+              <td><input class="form-control form-control-dark w-100" name="list_eth" id="search" type="text" placeholder="Список Ethernet портов" ></td>
+              <td><input class="form-control form-control-dark w-100" name="list_cx" id="search" type="text" placeholder="Список CX портов" ></td>
+              <td><input class="form-control form-control-dark w-100" name="list_sfp" id="search" type="text" placeholder="Список SFP портов" ></td>
+              <td><input class="form-control form-control-dark w-100" name="list_sfp_plus" id="search" type="text" placeholder="Список SFP+ портов" ></td>
+              <td><button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
+            </tr>
+          </form>
+            {% for i in list_models_sw %}
+          <form action = "/delmodelsw" method = "POST"">
+            <tr>
+              <td>{{i.modelsw}}</td>
+              <td>{{i.qt_port}}</td>
+              <td>{{i.list_combo_port}}</td>
+              <td>{{i.list_poe}}</td>
+              <td>{{i.list_eth}}</td>
+              <td>{{i.list_cx}}</td>
+              <td>{{i.list_sfp}}</td>
+              <td>{{i.list_sfp_plus}}</td>
+              <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
+            </tr></form>
+              {%  endfor %}
+
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+{% endblock %}
