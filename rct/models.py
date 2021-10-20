@@ -52,6 +52,11 @@ class Type(db.Model):
     vlans = db.relationship('Vlan', backref='typevlans')
     devises = relationship("Device", backref="typedevice")
 
+class Typesw(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    typesw = db.Column(db.String(7), nullable = False, unique=True)
+    #vlans = db.relationship('Vlan', backref='typevlans')
+    switches = relationship("Switch", backref="typeswitch")
 
 
 class Place(db.Model, TimestampMixin):
@@ -66,6 +71,7 @@ class Place(db.Model, TimestampMixin):
     rtsp = db.Column(db.String(40), default='no', comment='rtsp')
     cam_type = db.Column(db.String(40), default='no', comment='type')
     devices = db.relationship('Device', backref = 'place', uselist = False)
+    switches = db.relationship('Switch', backref = 'place', uselist = False)
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'), nullable=False)
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=False)
     port_id = db.Column(db.Integer, db.ForeignKey('port.id'))
@@ -144,11 +150,36 @@ class Model(db.Model):
         return '<Model %r>' % self.model
 
 
+
+
+
+
+
+# Предназначен для хранение основных параметров коммутатора, чтобы в автоматическом режиме создавать порты
+class ModelSwitch(db.Model):
+    __tablename__ = 'ModelSwitch'
+    id = db.Column(db.Integer, primary_key=True)
+    modelsw = db.Column(db.String(10),unique=True, nullable=False, comment = 'Название модели')
+    qt_port = db.Column(db.Integer, default = 'None',comment = 'Кол-во портов всего')
+    list_combo_port =db.Column(db.String(50),default = 'None', comment = 'Список combo портов')
+    list_poe = db.Column(db.String(200),default = 'None', comment = 'Список poe портов')
+    list_eth = db.Column(db.String(40),default = 'None', comment='Список Ethernet портов')
+    list_cx = db.Column(db.String(40),default = 'None', comment = 'Список CX портов')
+    list_sfp = db.Column(db.String(200),default = 'None', comment = 'Список SFP портов')
+    list_sfp_plus = db.Column(db.String(200),default = 'None', comment='Список SFP+ портов')
+    switches = relationship("Switch", backref="modelswitch")
+
 class Switch(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(10))
+    id_aiu = db.Column(db.String(10), comment='ID_AIU', nullable=False, unique=True)
+    name = db.Column(db.String(10), default = 'sklad')
+    mac = db.Column(db.String(16), comment='mac', unique=True)
+    docs = db.Column(db.String(30), comment='Накладная')
+    type_id = db.Column(db.Integer, db.ForeignKey('typesw.id'))
+    model_id = db.Column(db.Integer, db.ForeignKey('ModelSwitch.id'))
+    place_id = db.Column(db.Integer, db.ForeignKey('place.id'))
     ports = db.relationship('Port', backref='swports')
-    type = db.Column(db.String(10), default = 'sw', comment = 'sw-swu-core')
+
 
 
 
@@ -159,18 +190,6 @@ class Port(db.Model, TimestampMixin):
     places = db.relationship('Place', backref='placeport')
     status = db.Column(db.String(10), default = 'off', comment = 'empty')
     link = db.Column(db.String(10), default = 'access', comment = 'uplink-downlink')
-
-# Предназначен для хранение основных параметров коммутатора, чтобы в автоматическом режиме создавать порты
-class ModelSwitch(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    modelsw = db.Column(db.String(10),unique=True, nullable=False, comment = 'Название модели')
-    qt_port = db.Column(db.Integer, default = 'None',comment = 'Кол-во портов всего')
-    list_combo_port =db.Column(db.String(50),default = 'None', comment = 'Список combo портов')
-    list_poe = db.Column(db.String(200),default = 'None', comment = 'Список poe портов')
-    list_eth = db.Column(db.String(40),default = 'None', comment='Список Ethernet портов')
-    list_cx = db.Column(db.String(40),default = 'None', comment = 'Список CX портов')
-    list_sfp = db.Column(db.String(200),default = 'None', comment = 'Список SFP портов')
-    list_sfp_plus = db.Column(db.String(200),default = 'None', comment='Список SFP+ портов')
 
 
 
@@ -585,4 +604,20 @@ def check_if_ip_is_network(ipnet, netmask):
         return True
     except:
         return False
+
+# def excel_to_dict():
+#     """Делает из экселевского файла список словарей по строкам, где заголовки это ключи """
+#     # считываем файл
+#     source_excel = 'formexcel.xlsx'
+#     #source_excel = app.config['UPLOAD_FOLDER'] + '/' + filename
+#     wb = openpyxl.load_workbook(source_excel)
+#     sheet = wb.active
+#     rows = sheet.max_row
+#     cols = sheet.max_column
+#
+#     # Создаем список, в который будем добавлять словари
+#     status_list = []
+#
+#     # Считываем заголовки
+
 

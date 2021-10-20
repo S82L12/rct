@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu, deviceFromFile, ModelSwitch, modeliswFromFile
+from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu, deviceFromFile, ModelSwitch, modeliswFromFile, Switch, Typesw, Place
 
 from transliterate import translit
 import os
@@ -107,6 +107,26 @@ def deltype():
 
 
     return  render_template("delitem.html", status = status)
+
+
+@app.route('/deltypesw', methods = ['POST'])
+def deltypesw():
+    #status = request.form['delbtn']
+    try:
+        typeswToDelete = Typesw.query.get(request.form['delbtn'])
+        statustypeToDelete = typeswToDelete.typesw
+        db.session.delete(typeswToDelete)
+        db.session.flush()
+        db.session.commit()
+        status = "Type: "+ statustypeToDelete +" Успешно удален"
+    except:
+        db.session.rollback()
+        print("Ошибка удаления")
+        status = "Ошибка удаления TYPE : " + statustypeToDelete
+
+
+    return  render_template("delitem.html", status = status)
+
 
 
 @app.route('/dellocat', methods = ['POST'])
@@ -225,8 +245,41 @@ def devices():
 
     return render_template("devices.html", list_devices=list_devices, list_type = list_type, list_models= list_models, title='Устройства')
 
+# Добавление коммутаторов
+@app.route('/switches',methods = ['POST', 'GET'])
+def switches():
+    list_switches = db.session.query(Switch).order_by("name").all()
+    list_ModelSwitch = db.session.query(ModelSwitch).order_by("modelsw").all()
+    list_typesw = db.session.query(Typesw).order_by("typesw").all()
+    list_place = db.session.query(Place).all()
+
+    if request.method == 'POST':
+        # GET obj
+        typesw = db.session.query(Typesw).filter_by(typesw=request.form["type_id"]).one()
+        modelswitch = db.session.query(ModelSwitch).filter_by(modelsw=request.form["model_id"]).one()
 
 
+       # try:
+            # ImmutableMultiDic - > dict
+        sw = request.form.to_dict()
+        # Change fild on id.obj
+        sw["type_id"] = typesw.id
+        # print('modelsw',sw["modelsw"])
+        # print('modelsw', modelswitch.id)
+        sw["model_id"] = modelswitch.id
+
+        sw = Switch(**sw)
+        db.session.add(sw)
+        db.session.flush()
+        db.session.commit()
+        list_switches = db.session.query(Switch).order_by("name").all()
+
+        # except:
+        #     db.session.rollback()
+        #     print("Ошибка добавления в базу")
+        #     flash("Ошибка добавления в базу", "error")
+
+    return render_template("switches.html", list_switches=list_switches, title='Коммутаторы', list_ModelSwitch = list_ModelSwitch, list_typesw = list_typesw, list_place=list_place)
 
 
 @app.route('/address', methods = ['POST', 'GET'])
@@ -267,6 +320,25 @@ def addtype():
 
     return render_template("type.html", list_type = list_type)
 
+@app.route('/typesw', methods = ['POST', 'GET'])
+def addtypesw():
+    list_typesw = db.session.query(Typesw).order_by("typesw").all()
+    #print(list_typesw)
+    if request.method == "POST":
+        try:
+            type_sw = request.form
+            tps = Typesw(**type_sw)
+            db.session.add(tps)
+            db.session.flush()
+            db.session.commit()
+            list_typesw = db.session.query(Typesw).order_by("typesw").all()
+        except:
+            db.session.rollback()
+            flash("Ошибка добавления в базу", "error")
+            print("Ошибка добавления в базу")
+
+    return render_template("typesw.html", list_typesw = list_typesw)
+
 # Добавление моделей
 @app.route('/modeli', methods=['POST', 'GET'])
 def addmodeli():
@@ -306,8 +378,8 @@ def addmodelisw():
             list_models_sw = db.session.query(ModelSwitch).order_by("modelsw").all()
         except:
             db.session.rollback()
-            flash("Ошибка добавления адреса в базу", "error")
-            print("Ошибка добавления адреса в базу")
+            flash("Ошибка добавления в базу", "error")
+            print("Ошибка добавления в базу")
 
     return render_template("modelisw.html", list_models_sw=list_models_sw, title='Модели Коммутаторов')
 
