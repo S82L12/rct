@@ -37,8 +37,18 @@ class Address(db.Model, TimestampMixin):
     translate = db.Column(db.String(50), comment='translate')
     places = db.relationship('Place', backref='placeaddr')
     vlans = db.relationship('Vlan', backref='addressvlans')
+    switches = db.relationship('Switch', backref='addressswitch')
+    vlanssw = db.relationship('Vlansw', backref='addressvlanssw')
 
-
+class Vlansw(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    id_vl = db.Column(db.Integer, nullable=False, comment='id_vlan', unique=True)
+    name = db.Column(db.String(14), nullable=False, comment='name_vlan', unique=True)
+    ipnet = db.Column(db.String(20), comment='ip_network_mng', unique=True)
+    netmask = db.Column(db.Integer, comment='network_mask')
+    gw = db.Column(db.Integer, comment='network_mask') # net4.network_address+1
+    address_id = db.Column(db.Integer, db.ForeignKey('address.id'), comment='Адрес узла')
+    ipaddrsw = relationship("Ipaddrsw", backref="vlnetswipaddr",cascade="all,delete", passive_deletes=True)
 
 class Location(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -74,7 +84,8 @@ class Place(db.Model, TimestampMixin):
     switches = db.relationship('Switch', backref = 'place', uselist = False)
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'), nullable=False)
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=False)
-    port_id = db.Column(db.Integer, db.ForeignKey('port.id'))
+    #port_id = db.Column(db.Integer, db.ForeignKey('port.id'))
+    port = db.relationship('Port', backref='placeport', uselist = False)
     azimuth = db.Column(db.String(15), default='no', comment='azimut')
     angle = db.Column(db.String(15), default='no', comment='angel')
     n_gk = db.Column(db.String(15), default='GK-', comment='N_GK')
@@ -90,14 +101,14 @@ class Server(db.Model):
     ipaddr_id = db.Column(db.Integer, db.ForeignKey('ipaddr.id'))
     devices = db.relationship('Device', backref='deviceserver')
 
-# НЕ будем использовать
+# Под вопросом
 class Ipaddr(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ipaddr = db.Column(db.String(26), default='0.0.0.0', comment='ipaddr')
     devices = db.relationship('Device', backref='deviceip', uselist = False)
     servers = db.relationship('Server', backref='serverip', uselist = False)
 
-
+# под вопросом
 
 
 class Vlan(db.Model):
@@ -111,7 +122,27 @@ class Vlan(db.Model):
     type_id = db.Column(db.Integer, db.ForeignKey('type.id'))
     model_id = db.Column(db.Integer, db.ForeignKey('model.id'))
 
+class Ipaddrsw(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ipaddr = db.Column(db.String(26), default='2.2.2.2', comment='ipaddrsw')
+    netmask = db.Column(db.Integer, comment='network_mask', default = Vlan.netmask)
+    gw = db.Column(db.String(26), default='2.2.2.2', comment='gw')
+    status = db.Column(db.String(26), default='Free', comment='Free or Busy')
+    switches = db.relationship('Switch', backref='switchip')
+    vlansw_id = db.Column(db.Integer, db.ForeignKey('vlansw.id', ondelete='CASCADE'))
 
+    @classmethod
+    def createips(cls,objvlnt):
+        net4 = ipaddress.ip_network(str(objvlnt.ipnet) + '/' + str(objvlnt.netmask))
+        list_ipaddr = [str(ip) for ip in net4.hosts() if ip != net4.network_address+1]
+
+        for ip in list_ipaddr:
+            dict = {key: item for key, item in zip(['ipaddr', 'netmask', 'gw', 'status', 'vlansw_id'],
+                                                   [ip, objvlnt.netmask, objvlnt.gw, 'free', objvlnt.id])}
+            ipitem = Ipaddrsw(**dict)
+            db.session.add(ipitem)
+            db.session.flush()
+            db.session.commit()
 
 
 
@@ -175,9 +206,12 @@ class Switch(db.Model, TimestampMixin):
     name = db.Column(db.String(10), default = 'sklad')
     mac = db.Column(db.String(16), comment='mac', unique=True)
     docs = db.Column(db.String(30), comment='Накладная')
+    description = db.Column(db.String(400), comment='Примечание')
     type_id = db.Column(db.Integer, db.ForeignKey('typesw.id'))
     model_id = db.Column(db.Integer, db.ForeignKey('ModelSwitch.id'))
-    place_id = db.Column(db.Integer, db.ForeignKey('place.id'))
+    place_id = db.Column(db.Integer, db.ForeignKey('place.id'))  # Удалить
+    address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
+    ipaddrsw_id = db.Column(db.Integer, db.ForeignKey('ipaddrsw.id'))
     ports = db.relationship('Port', backref='swports')
 
 
@@ -185,11 +219,12 @@ class Switch(db.Model, TimestampMixin):
 
 class Port(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
-    num = db.Column(db.Integer)
-    Switch_id = db.Column(db.Integer, db.ForeignKey('switch.id'))
-    places = db.relationship('Place', backref='placeport')
+    name = db.Column(db.Integer)
+    switch_id = db.Column(db.Integer, db.ForeignKey('switch.id'))
     status = db.Column(db.String(10), default = 'off', comment = 'empty')
-    link = db.Column(db.String(10), default = 'access', comment = 'uplink-downlink')
+    linksw_id = db.Column(db.Integer, db.ForeignKey('port.id'))
+    linkdev_id =db.Column(db.Integer, db.ForeignKey('place.id'))
+    linkssw = relationship("Port")
 
 
 
@@ -548,6 +583,41 @@ def addrFromFile(filename, app, translit):
 
     return status_list
 #####
+                    # СДЕЛАНО через @classmethod
+                    # # Автосоздание ip адресов vlnt - vlans_network obj
+                    # def auto_create_ipaddr(vlnt):
+                    #     print('vlan_id ',vlnt.id, 'ipnet ', vlnt.ipnet,'mask ', vlnt.netmask, 'gw ', vlnt.gw)
+                    #     net4 = ipaddress.ip_network(str(vlnt.ipnet)+'/'+str(vlnt.netmask))
+                    #     list_ipaddr = [str(ip) for ip in net4.hosts() if ip != net4.network_address+1]
+                    #
+                    #
+                    #     for ip in list_ipaddr:
+                    #         dict = {key : item for key, item in zip(['ipaddr', 'netmask', 'gw', 'status', 'vlansw_id'], [ip, vlnt.netmask, vlnt.gw, 'free', vlnt.id])}
+                    #
+                    #         #try:
+                    #         ipitem = Ipaddrsw(**dict)
+                    #         db.session.add(ipitem)
+                    #         db.session.flush()
+                    #         db.session.commit()
+                    #
+                    #         #except:
+                    #             # db.session.rollback()
+                    #             # print('Ошибка создания порта')
+                    #
+                    #     #list2 = [ip for {key : item for key, item in zip(['ipaddr', 'netmask', 'gw', 'status', 'vlansw_id'], [ip, vlnt.netmask, vlnt.gw, 'free', vlnt.id])} in net4.hosts() if ip != net4.network_address+1]
+                    #
+                    #     #print(list2)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -596,7 +666,7 @@ def check_if_ip_aiu(ip):
     pass
     return ip
 
-
+# проверка правильности введения сети и маски
 def check_if_ip_is_network(ipnet, netmask):
     ip_address = str(ipnet) + '/' + str(netmask)
     try:

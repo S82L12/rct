@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu, deviceFromFile, ModelSwitch, modeliswFromFile, Switch, Typesw, Place
-
+from rct.models import db, Vlan, Vlansw, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu, deviceFromFile, ModelSwitch, modeliswFromFile, Switch, Typesw, Place, Ipaddr, Ipaddrsw
+import ipaddress
 from transliterate import translit
 import os
 from rct.forms import LocationFormAdd, ModelFormAdd
@@ -34,10 +34,35 @@ db.create_all(app=app)
 def main():
     return render_template("index.html")
 
+# Удаление VLANSW
+@app.route('/delvlanssw', methods = ['POST'])
+def delvlanssw():
 
+    try:
+        vlanswToDelete = Vlansw.query.get(request.form['delbtn'])
+
+        # Удаляем IP (каскадно не получается (sqllite))
+        db.session.query(Ipaddrsw).filter(Ipaddrsw.vlansw_id == vlanswToDelete.id).delete()
+
+        #
+        idvlan = str(vlanswToDelete.id_vl)
+        db.session.delete(vlanswToDelete)
+        db.session.flush()
+        db.session.commit()
+        status = "VLAN ID: "+ idvlan +"\t и подсеть: "+ vlanswToDelete.ipnet +" Успешно удалена, \t все IP адреса из этой подсети - удалены"
+    except:
+        db.session.rollback()
+        print("Ошибка удаления")
+        status = "Ошибка удаления VLAN ID : " + idvlan
+
+
+    return  render_template("delvlans.html", status = status)
+
+
+# Удаление VLAN
 @app.route('/delvlans', methods = ['POST'])
 def delvlans():
-    #status = request.form['delbtn']
+
     try:
         vlanToDelete = Vlan.query.get(request.form['delbtn'])
         idvlan = str(vlanToDelete.id_vl)
@@ -184,7 +209,7 @@ def deldevice():
     return  render_template("delitem.html", status = status)
 
 
-
+# Добавление VLAN и Network for DEVICE
 @app.route('/vlans', methods = ['POST', 'GET'])
 def addvlans():
     list_address = db.session.query(Address).all()
@@ -205,12 +230,53 @@ def addvlans():
                 flash("Проверьте правильность адреса подсети", "error")
                 print("Проверьте правильность адреса подсети")
         except:
+            flash("Ошибка добавления адреса в базу", "error")
             db.session.rollback()
             print("Ошибка добавления адреса в базу")
 
 
 
     return render_template("vlans.html", list_address = list_address, list_vlans = list_vlans, list_type = list_type, title = 'Добавление Vlan & IpNetwork')
+
+# Добавление VLAN и Network for SWITCH
+@app.route('/vlanssw', methods = ['POST', 'GET'])
+def addvlansw():
+    list_address = db.session.query(Address).all()
+    list_vlanssw = db.session.query(Vlansw).order_by("id_vl").all()
+
+    if request.method == "POST":
+        # try:
+            vlansw = request.form.to_dict()
+
+            if check_if_ip_is_network(vlansw["ipnet"], vlansw["netmask"]):
+                addr = db.session.query(Address).filter_by(small_address=vlansw["address_id"]).one()
+                vlansw["address_id"] = addr.id
+                vlansw["gw"] = str(ipaddress.ip_network(str(vlansw["ipnet"])+'/'+str(vlansw["netmask"])).network_address+1)
+                vlansw = Vlansw(**vlansw)
+                db.session.add(vlansw)
+                db.session.flush()
+                db.session.commit()
+                #auto_create_ipaddr(vlansw)
+                Ipaddrsw.createips(vlansw)
+
+                list_vlanssw = db.session.query(Vlansw).order_by("id_vl").all()
+
+            else:
+                flash("Проверьте правильность адреса подсети", "error")
+                print("Проверьте правильность адреса подсети")
+        # except Exception as e:
+        #    err = type(e).__name__
+        #    #message = e.message
+        #    print(err)
+        #    db.session.rollback()
+        #    flash(err, "error")
+        #    flash("Ошибка добавления адреса в базу", "error")
+        #    print("Ошибка добавления адреса в базу")
+
+
+
+    return render_template("vlanssw.html", list_address = list_address, list_vlanssw = list_vlanssw, title = 'Добавление Vlan & IpNetwork switch')
+
 
 # Devices
 @app.route('/devices', methods = ['POST', 'GET'])
@@ -251,27 +317,42 @@ def switches():
     list_switches = db.session.query(Switch).order_by("name").all()
     list_ModelSwitch = db.session.query(ModelSwitch).order_by("modelsw").all()
     list_typesw = db.session.query(Typesw).order_by("typesw").all()
-    list_place = db.session.query(Place).all()
+    list_addreses = db.session.query(Address).order_by("small_address").all()
+    list_ip_addreses = db.session.query(Ipaddrsw).filter(Ipaddrsw.status == 'free').all()
+    print(list_ip_addreses)
+
 
     if request.method == 'POST':
         # GET obj
         typesw = db.session.query(Typesw).filter_by(typesw=request.form["type_id"]).one()
         modelswitch = db.session.query(ModelSwitch).filter_by(modelsw=request.form["model_id"]).one()
-
-
-       # try:
+        addressswitch = db.session.query(Address).filter_by(small_address=request.form["address_id"]).one()
+        ip_addreses = db.session.query(Ipaddrsw).filter_by(ipaddr=request.form["ipaddrsw_id"]).one()
+        print(ip_addreses)
+        print(ip_addreses.id)
+        # try:
             # ImmutableMultiDic - > dict
         sw = request.form.to_dict()
         # Change fild on id.obj
         sw["type_id"] = typesw.id
-        # print('modelsw',sw["modelsw"])
-        # print('modelsw', modelswitch.id)
         sw["model_id"] = modelswitch.id
+        sw["mac"] = check_if_mac_aiu(sw["mac"])
+        sw["address_id"]=addressswitch.id
+        sw["ipaddrsw_id"] = ip_addreses.id
 
         sw = Switch(**sw)
         db.session.add(sw)
         db.session.flush()
         db.session.commit()
+
+        # Изменяем статус IP на ID коммутатора
+        ip_addreses.status = sw.id
+        db.session.add(ip_addreses)
+        db.session.flush()
+        db.session.commit()
+
+        #возвращаем список свободных адресов
+        list_ip_addreses = db.session.query(Ipaddrsw).filter(Ipaddrsw.status == 'free').all()
         list_switches = db.session.query(Switch).order_by("name").all()
 
         # except:
@@ -279,7 +360,7 @@ def switches():
         #     print("Ошибка добавления в базу")
         #     flash("Ошибка добавления в базу", "error")
 
-    return render_template("switches.html", list_switches=list_switches, title='Коммутаторы', list_ModelSwitch = list_ModelSwitch, list_typesw = list_typesw, list_place=list_place)
+    return render_template("switches.html", list_switches=list_switches, title='Коммутаторы', list_ModelSwitch = list_ModelSwitch, list_typesw = list_typesw, list_addreses = list_addreses, list_ip_addreses =list_ip_addreses)
 
 
 @app.route('/address', methods = ['POST', 'GET'])

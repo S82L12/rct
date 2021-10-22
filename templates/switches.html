@@ -39,8 +39,10 @@
               <th scope="col">Тип</th>
               <th scope="col">Модель</th>
               <th scope="col">MAC</th>
-              <th scope="col">Локация</th>
+              <th scope="col">Адрес</th>
+              <th scope="col">IP адрес</th>
               <th scope="col">Накладная</th>
+              <th scope="col">Примечание</th>
               <th scope="col">Действие</th>
 
 
@@ -68,14 +70,21 @@
               </td>
                 <td><input class="form-control form-control-dark w-100" name="mac" type="text" placeholder="00:00:00:00:00:00"></td>
 
-                <td><select name="place_id" class="form-control form-control-dark w-100">
-                      <option>Локация</option>
-                      {% for i in list_place %}
-                      <option>{{i.id}}</option>
+                <td><select name="address_id" class="form-control form-control-dark w-100">
+                      <option>Адрес</option>
+                      {% for i in list_addreses %}
+                      <option>{{i.small_address}}</option>
+                      {% endfor %}
+                  </select></td>
+                <td><select name="ipaddrsw_id" class="form-control form-control-dark w-100">
+                      <option>Адрес</option>
+                      {% for i in list_ip_addreses %}
+                      <option>{{i.ipaddr}}</option>
                       {% endfor %}
                   </select></td>
 
                 <td><input class="form-control form-control-dark w-100" name="docs" type="text" placeholder="Номер и дата накладной"></td>
+                <td><input class="form-control form-control-dark w-100" name="description" type="text" placeholder="Примечание"></td>
 
                 <td><button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
 
@@ -101,10 +110,15 @@
               <td>{{i.id_aiu}}</td>
               <td>{{i.name}}</td>
               <td>{{i.typeswitch.typesw}}</td>
+              <td>{{i.modelswitch.modelsw}}</td>
               <td>{{i.mac}}</td>
+               <td>{{i.addressswitch.small_address}}</td>
+                <td>{{i.switchip.ipaddr}}</td>
+                <td>{{i.docs}}</td>
+                <td>{{i.description}}</td>
 
 
-              <td>{{i.docs}}</td>
+
               <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
             </tr></form>
 
