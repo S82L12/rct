@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from rct.models import db, Vlan, Vlansw, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu, deviceFromFile, ModelSwitch, modeliswFromFile, Switch, Typesw, Place, Ipaddr, Ipaddrsw
+from rct.models import db, Vlan, Node, Vlansw, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu, deviceFromFile, Modelswitch, modeliswFromFile, Switch, Typesw, Place, Ipaddr, Ipaddrsw, Port
 import ipaddress
 from transliterate import translit
 import os
@@ -98,7 +98,7 @@ def delmodel():
 @app.route('/delmodelsw', methods = ['POST'])
 def delmodelsw():
     try:
-        modelswToDelete = ModelSwitch.query.get(request.form['delbtn'])
+        modelswToDelete = Modelswitch.query.get(request.form['delbtn'])
 
         status = modelswToDelete.modelsw
 
@@ -208,6 +208,70 @@ def deldevice():
 
     return  render_template("delitem.html", status = status)
 
+# Удаление коммутатора со склада с преварительной проверкой подключенных портов
+@app.route('/delswitches', methods = ['POST'])
+def delswitches():
+    try:
+        devToDelete = Switch.query.get(request.form['delbtn'])
+        statusdevToDelete = devToDelete.id_aiu
+        db.session.delete(devToDelete)
+        db.session.flush()
+
+        # Проверяем есть ли подключенные порты, иначе нельзя удалять:
+        if db.session.query(Port).filter(Port.switch_id == devToDelete.id, Port.linksw_id != None).count() == 0 and db.session.query(Port).filter(Port.switch_id == devToDelete.id, Port.linkdev_id != None).count() == 0:
+            db.session.query(Port).filter(Port.switch_id == devToDelete.id).delete()
+            db.session.commit()
+            status = "Коммутатор: " + statusdevToDelete + "\t Вместе с портами Успешно удален"
+        else:
+            db.session.rollback()
+            status = "Коммутатор имеет подключенные устройства, удаление отменено : " + statusdevToDelete
+
+
+    except:
+        db.session.rollback()
+        print("Ошибка удаления")
+        status = "Ошибка удаления коммутатора : " + statusdevToDelete
+
+    return render_template("delitem.html", status=status)
+
+
+# Редактирование
+# @app.route('/editswitch', method =['POST'])
+# def deleditswitch():
+#     pass
+
+# Добавление Узла
+@app.route('/addnode', methods = ['POST', 'GET'])
+def addnode():
+    list_address = db.session.query(Address).all()
+
+    list_sw = db.session.query(Switch).order_by("id_aiu").filter(Switch.node_id == None).all()
+    #dict_sw = {id_aiu.id : modelsw.modelswitch.modelsw for id_aiu in list_sw for modelsw in list_sw}
+
+
+    if request.method == "POST":
+       # try:
+            sw = request.form["switches"].split(" : ")[0]
+            sw = db.session.query(Switch).filter(Switch.id_aiu == sw)
+            node = request.form.to_dict()
+
+            for i,j in node.items():
+                print(i,j)
+            node = Node(**node)
+            db.session.add(node)
+            db.session.flush()
+            node.switches.append(sw)
+            db.session.commit()
+            #list_sw = db.session.query(Switch).order_by("id_aiu").filter(Switch.node_id == None).all()
+            return redirect(url_for('addnode'))
+        # except:
+        #     flash("Ошибка добавления адреса в базу", "error")
+        #     db.session.rollback()
+        #     print("Ошибка добавления адреса в базу")
+
+    #return redirect(url_for('addnode'))
+    return render_template("addnode.html", list_address = list_address, list_sw = list_sw, title = 'Добавление Узла')
+
 
 # Добавление VLAN и Network for DEVICE
 @app.route('/vlans', methods = ['POST', 'GET'])
@@ -245,7 +309,7 @@ def addvlansw():
     list_vlanssw = db.session.query(Vlansw).order_by("id_vl").all()
 
     if request.method == "POST":
-        # try:
+        try:
             vlansw = request.form.to_dict()
 
             if check_if_ip_is_network(vlansw["ipnet"], vlansw["netmask"]):
@@ -264,14 +328,14 @@ def addvlansw():
             else:
                 flash("Проверьте правильность адреса подсети", "error")
                 print("Проверьте правильность адреса подсети")
-        # except Exception as e:
-        #    err = type(e).__name__
-        #    #message = e.message
-        #    print(err)
-        #    db.session.rollback()
-        #    flash(err, "error")
-        #    flash("Ошибка добавления адреса в базу", "error")
-        #    print("Ошибка добавления адреса в базу")
+        except Exception as e:
+           err = type(e).__name__
+           #message = e.message
+           print(err)
+           db.session.rollback()
+           flash(err, "error")
+           flash("Ошибка добавления адреса в базу", "error")
+           print("Ошибка добавления адреса в базу")
 
 
 
@@ -311,57 +375,99 @@ def devices():
 
     return render_template("devices.html", list_devices=list_devices, list_type = list_type, list_models= list_models, title='Устройства')
 
-# Добавление коммутаторов
+# редактирование коммутаторов и узлов
 @app.route('/switches',methods = ['POST', 'GET'])
 def switches():
     list_switches = db.session.query(Switch).order_by("name").all()
-    list_ModelSwitch = db.session.query(ModelSwitch).order_by("modelsw").all()
+    list_modelswitch = db.session.query(Modelswitch).order_by("modelsw").all()
     list_typesw = db.session.query(Typesw).order_by("typesw").all()
     list_addreses = db.session.query(Address).order_by("small_address").all()
     list_ip_addreses = db.session.query(Ipaddrsw).filter(Ipaddrsw.status == 'free').all()
-    print(list_ip_addreses)
+
 
 
     if request.method == 'POST':
         # GET obj
         typesw = db.session.query(Typesw).filter_by(typesw=request.form["type_id"]).one()
-        modelswitch = db.session.query(ModelSwitch).filter_by(modelsw=request.form["model_id"]).one()
+        modelswitch = db.session.query(Modelswitch).filter_by(modelsw=request.form["model_id"]).one()
         addressswitch = db.session.query(Address).filter_by(small_address=request.form["address_id"]).one()
         ip_addreses = db.session.query(Ipaddrsw).filter_by(ipaddr=request.form["ipaddrsw_id"]).one()
-        print(ip_addreses)
-        print(ip_addreses.id)
-        # try:
+
+
+        try:
             # ImmutableMultiDic - > dict
-        sw = request.form.to_dict()
-        # Change fild on id.obj
-        sw["type_id"] = typesw.id
-        sw["model_id"] = modelswitch.id
-        sw["mac"] = check_if_mac_aiu(sw["mac"])
-        sw["address_id"]=addressswitch.id
-        sw["ipaddrsw_id"] = ip_addreses.id
+            sw = request.form.to_dict()
+            # Change fild on id.obj
+            # Change fild on id.obj
+            sw["type_id"] = typesw.id
+            sw["model_id"] = modelswitch.id
+            sw["mac"] = check_if_mac_aiu(sw["mac"])
+            sw["address_id"]=addressswitch.id
+            sw["ipaddrsw_id"] = ip_addreses.id
 
-        sw = Switch(**sw)
-        db.session.add(sw)
-        db.session.flush()
-        db.session.commit()
+            sw = Switch(**sw)
+            db.session.add(sw)
+            db.session.flush()
+            db.session.commit()
 
-        # Изменяем статус IP на ID коммутатора
-        ip_addreses.status = sw.id
-        db.session.add(ip_addreses)
-        db.session.flush()
-        db.session.commit()
+            # Изменяем статус IP на ID коммутатора (чтобы список был из снезянятых IP)
+            ip_addreses.status = sw.id
+            db.session.add(ip_addreses)
+            db.session.flush()
+            db.session.commit()
 
-        #возвращаем список свободных адресов
-        list_ip_addreses = db.session.query(Ipaddrsw).filter(Ipaddrsw.status == 'free').all()
-        list_switches = db.session.query(Switch).order_by("name").all()
+            #возвращаем список свободных адресов
+            list_ip_addreses = db.session.query(Ipaddrsw).filter(Ipaddrsw.status == 'free').all()
+            list_switches = db.session.query(Switch).order_by("name").all()
 
-        # except:
-        #     db.session.rollback()
-        #     print("Ошибка добавления в базу")
-        #     flash("Ошибка добавления в базу", "error")
 
-    return render_template("switches.html", list_switches=list_switches, title='Коммутаторы', list_ModelSwitch = list_ModelSwitch, list_typesw = list_typesw, list_addreses = list_addreses, list_ip_addreses =list_ip_addreses)
+            Port.createports(sw)
 
+        except:
+            db.session.rollback()
+            print("Ошибка добавления в базу")
+            flash("Ошибка добавления в базу", "error")
+
+    return render_template("switches.html", list_switches=list_switches, title='Коммутаторы', list_modelswitch = list_modelswitch, list_typesw = list_typesw, list_addreses = list_addreses, list_ip_addreses =list_ip_addreses)
+
+# Добавление коммутаторов на склад
+@app.route('/addswitches', methods = ['POST', 'GET'])
+def addswitches():
+    list_modelswitch = db.session.query(Modelswitch).order_by("modelsw").all()
+    list_typesw = db.session.query(Typesw).order_by("typesw").all()
+    list_switches = db.session.query(Switch).order_by("name").all()
+    if request.method == 'POST':
+        # GET obj
+        typesw = db.session.query(Typesw).filter_by(typesw=request.form["type_id"]).one()
+        modelswitch = db.session.query(Modelswitch).filter_by(modelsw=request.form["model_id"]).one()
+        try:
+
+
+            # ImmutableMultiDic - > dict
+            sw = request.form.to_dict()
+            # Change fild on id.obj
+            sw["type_id"] = typesw.id
+            sw["model_id"] = modelswitch.id
+            sw["mac"] = check_if_mac_aiu(sw["mac"])
+
+
+            sw = Switch(**sw)
+            db.session.add(sw)
+            db.session.flush()
+            # Создание коммутаторов
+            Port.createports(sw)
+
+            db.session.commit()
+
+            list_switches = db.session.query(Switch).order_by("name").all()
+
+        except:
+            db.session.rollback()
+            print("Ошибка добавления в базу")
+            flash("Ошибка добавления в базу", "error")
+
+    return render_template("addswitches.html", title='Добавление Коммутаторов', list_modelswitch=list_modelswitch, list_typesw=list_typesw, list_switches = list_switches)
+#-----------------------
 
 @app.route('/address', methods = ['POST', 'GET'])
 def addaddress():
@@ -447,16 +553,16 @@ def addmodeli():
 # Добавление моделей коммутаторов
 @app.route('/modelisw', methods=['POST', 'GET'])
 def addmodelisw():
-    list_models_sw = db.session.query(ModelSwitch).order_by("modelsw").all()
+    list_models_sw = db.session.query(Modelswitch).order_by("modelsw").all()
 
     if request.method == "POST":
         try:
             model_sw = request.form
-            model_sw = ModelSwitch(**model_sw)
+            model_sw = Modelswitch(**model_sw)
             db.session.add(model_sw)
             db.session.flush()
             db.session.commit()
-            list_models_sw = db.session.query(ModelSwitch).order_by("modelsw").all()
+            list_models_sw = db.session.query(Modelswitch).order_by("modelsw").all()
         except:
             db.session.rollback()
             flash("Ошибка добавления в базу", "error")

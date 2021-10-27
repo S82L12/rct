@@ -63,7 +63,7 @@
               </td>
               <td><select name="model_id" class="form-control form-control-dark w-100">
                       <option>Модель</option>
-                      {% for i in list_modelswitch %}
+                      {% for i in list_ModelSwitch %}
                       <option>{{i.modelsw}}</option>
                       {% endfor %}
                   </select>

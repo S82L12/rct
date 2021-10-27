@@ -39,6 +39,8 @@ class Address(db.Model, TimestampMixin):
     vlans = db.relationship('Vlan', backref='addressvlans')
     switches = db.relationship('Switch', backref='addressswitch')
     vlanssw = db.relationship('Vlansw', backref='addressvlanssw')
+    nodes = db.relationship('Node', backref='addressnodes', uselist = False)
+
 
 class Vlansw(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -187,8 +189,8 @@ class Model(db.Model):
 
 
 # Предназначен для хранение основных параметров коммутатора, чтобы в автоматическом режиме создавать порты
-class ModelSwitch(db.Model):
-    __tablename__ = 'ModelSwitch'
+class Modelswitch(db.Model):
+    #__tablename__ = 'ModelSwitch'
     id = db.Column(db.Integer, primary_key=True)
     modelsw = db.Column(db.String(10),unique=True, nullable=False, comment = 'Название модели')
     qt_port = db.Column(db.Integer, default = 'None',comment = 'Кол-во портов всего')
@@ -200,6 +202,18 @@ class ModelSwitch(db.Model):
     list_sfp_plus = db.Column(db.String(200),default = 'None', comment='Список SFP+ портов')
     switches = relationship("Switch", backref="modelswitch")
 
+
+# Узел
+class Node(db.Model, TimestampMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(25), comment='Имя узла')
+    description = db.Column(db.String(400), comment='Примечание')
+    address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
+    switches = db.relationship('Switch', backref='swnodes')
+
+
+
+
 class Switch(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     id_aiu = db.Column(db.String(10), comment='ID_AIU', nullable=False, unique=True)
@@ -208,11 +222,12 @@ class Switch(db.Model, TimestampMixin):
     docs = db.Column(db.String(30), comment='Накладная')
     description = db.Column(db.String(400), comment='Примечание')
     type_id = db.Column(db.Integer, db.ForeignKey('typesw.id'))
-    model_id = db.Column(db.Integer, db.ForeignKey('ModelSwitch.id'))
+    model_id = db.Column(db.Integer, db.ForeignKey('modelswitch.id'))
     place_id = db.Column(db.Integer, db.ForeignKey('place.id'))  # Удалить
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
     ipaddrsw_id = db.Column(db.Integer, db.ForeignKey('ipaddrsw.id'))
-    ports = db.relationship('Port', backref='swports')
+    node_id = db.Column(db.Integer, db.ForeignKey('node.id'))
+    ports = db.relationship('Port', backref='swports', cascade="all,delete", passive_deletes=True)
 
 
 
@@ -220,11 +235,29 @@ class Switch(db.Model, TimestampMixin):
 class Port(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Integer)
-    switch_id = db.Column(db.Integer, db.ForeignKey('switch.id'))
+    switch_id = db.Column(db.Integer, db.ForeignKey('switch.id', ondelete='CASCADE'))
     status = db.Column(db.String(10), default = 'off', comment = 'empty')
     linksw_id = db.Column(db.Integer, db.ForeignKey('port.id'))
     linkdev_id =db.Column(db.Integer, db.ForeignKey('place.id'))
     linkssw = relationship("Port")
+
+    @classmethod
+    def createports(cls, objsw):
+        #
+        # qtport = objsw.modelswitch.qt_port
+        # print('Число портов',qtport)
+        print('все атрибуты',objsw.__dict__)
+
+        for portname in range(objsw.modelswitch.qt_port):
+            #  dict = {key: item for key, item in zip(['name', 'switch_id', 'status', 'linksw_id', 'linkdev_id'],
+            #                                                    ['Port_'+ str(portname + 1), objsw.id, 'free', 'free', 'free'])}
+            dict = {key: item for key, item in zip(['name', 'switch_id', 'status'],
+                                                   ['Port_'+ str(portname + 1), objsw.id])}
+
+            port = Port(**dict)
+            db.session.add(port)
+            db.session.flush()
+            db.session.commit()
 
 
 
@@ -361,7 +394,7 @@ def modeliswFromFile(filename, app):
         modelsw = runupmodel(modelsw)  # Пропускаем через функцию
         status_dict["modelisw"] = modelsw
 
-        modelstatus = ModelSwitch.query.filter(ModelSwitch.modelsw.contains(modelsw)).first()
+        modelstatus = Modelswitch.query.filter(Modelswitch.modelsw.contains(modelsw)).first()
         if modelstatus:
             status_dict['status'] = 'Модель уже существует'
 
@@ -376,7 +409,7 @@ def modeliswFromFile(filename, app):
                list_sfp = sheet.cell(row=i, column=7).value
                list_sfp_plus = sheet.cell(row=i, column=8).value
 
-               modelsw = ModelSwitch(modelsw = modelsw, qt_port = qt_port, list_combo_port = list_combo_port, list_poe = list_poe, list_eth = list_eth, list_cx = list_cx, list_sfp = list_sfp, list_sfp_plus=list_sfp_plus)
+               modelsw = Modelswitch(modelsw = modelsw, qt_port = qt_port, list_combo_port = list_combo_port, list_poe = list_poe, list_eth = list_eth, list_cx = list_cx, list_sfp = list_sfp, list_sfp_plus=list_sfp_plus)
                db.session.add(modelsw)
 
                db.session.flush()
@@ -388,7 +421,7 @@ def modeliswFromFile(filename, app):
 
         status_list.append(status_dict)
 
-    return status_list
+    return status_list5
 
 
 def deviceFromFile(filename, app):
@@ -665,6 +698,10 @@ def check_if_ip_aiu(ip):
     """проверка ip  принадлежности его к сети, нужно передавать еще и место"""
     pass
     return ip
+
+def check_addsw_ipaddrsw():
+    """Проверка принадлженость адреса установки коммутатора"""
+
 
 # проверка правильности введения сети и маски
 def check_if_ip_is_network(ipnet, netmask):

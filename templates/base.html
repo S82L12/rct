@@ -1,13 +1,15 @@
 <!doctype html>
 
 <html lang="en">
-  <head>
+
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="">
-    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+   <!--  <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors"> -->
     <meta name="generator" content="Hugo 0.80.0">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
 
     <link rel = "stylesheet" href = "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <title>{{title}}</title>
@@ -72,7 +74,12 @@
               Добавление адреса
             </a>
           </li>
-
+          <li class="nav-item">
+            <a class="nav-link" href="/addnode">
+              <span data-feather="bar-chart-2"></span>
+              Добавление Узла
+            </a>
+          </li>
 
 
           <li class="nav-item">
@@ -80,6 +87,7 @@
               <span data-feather="layers"></span>
               Добавление Vlan & IpNetwork DEVICE
             </a>
+
           </li>
           <li class="nav-item">
             <a class="nav-link" href="/vlanssw">
@@ -94,7 +102,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="/switches">
+            <a class="nav-link" href="/addswitches">
               <span data-feather="layers"></span>
               Добавление Коммутаторов
             </a>
