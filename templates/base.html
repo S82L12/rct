@@ -12,9 +12,12 @@
 
 
     <link rel = "stylesheet" href = "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
     <title>{{title}}</title>
 
     <link rel="canonical" href="{{ url_for('static', filename='css/dashboard.css')}}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rct.css')}}">
+
 
 
 
@@ -77,7 +80,15 @@
           <li class="nav-item">
             <a class="nav-link" href="/addnode">
               <span data-feather="bar-chart-2"></span>
-              Добавление Узла
+              Узлы
+                <ul>
+                {%for i in list_nodes%}
+                  <li  value="{{i.id}}" class="nav-item" >
+                    <a href="addnode/{{i.id}}">
+                    {{i.name}}
+                  </li>
+                {%endfor%}
+              </ul>
             </a>
           </li>
 
@@ -104,6 +115,7 @@
           <li class="nav-item">
             <a class="nav-link" href="/addswitches">
               <span data-feather="layers"></span>
+
               Добавление Коммутаторов
             </a>
           </li>

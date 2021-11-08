@@ -20,17 +20,14 @@ Vlans
   </ul>
 
 </header>
-    <h2>Сетевые Узлы</h2>
-
-
-
+    <h2>Узловые адреса</h2>
       <div class="table-responsive">
         <table class="table table-striped table-sm">
           <thead>
             <tr>
               <th scope="col">Имя узла</th>
               <th scope="col">Адрес узла</th>
-              <th scope="col">Коммутатор</th>
+
               <th scope="col">Примечание</th>
 
             </tr>
@@ -43,16 +40,7 @@ Vlans
                   <select name="address_id" class="form-control form-control-dark w-100">
                       <option>Выберите из списка</option>
                       {% for i in list_address%}
-                      <option>{{i.small_address}}</option>
-                      {% endfor %}
-                  </select>
-              </td>
-
-                <td>
-                  <select name="switches" class="form-control form-control-dark w-100">
-                      <option>Выберите из списка</option>
-                      {% for i in list_sw%}
-                      <option>{{i.id_aiu}} : {{i.modelswitch.modelsw}}</option>
+                      <option value="{{i.id}}">{{i.small_address}}</option>
                       {% endfor %}
                   </select>
               </td>
@@ -72,25 +60,25 @@ Vlans
             {% endif %}
           {% endwith %}
 
-
-
-
-<!--     УЗЛЫ
-          {% for i in list_vlanssw %}
-          <form action = "/delvlanssw" method = "POST" name="{{i.id}}">
+          {%for i in list_nodes%}
+        <form action = "/delnodes" method = "POST"">
             <tr>
-              <td>{{i.id_vl}}</td>
               <td>{{i.name}}</td>
-              <td>{{i.addressvlanssw.small_address}}</td>
-                <td>{{i.ipnet}}/{{i.netmask}}</td>
-                <td>{{i.gw}}</td>
+              <td>{{i.addressnodes.small_address}}</td>
+                <td>{{i.description}}</td>
+
+
+
+
               <td><button type="submit" name = "delbtn" value = "{{i.id}}" class="btn btn-dark btn-sm">Удалить</button></td>
             </tr></form>
-              {%  endfor %} -->
+            {% endfor %}
 
           </tbody>
         </table>
+
       </div>
+
     </main>
 
 {% endblock %}

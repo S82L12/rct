@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Адреса
+{% endblock %}
+
+{% block body %}
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4"><div class="chartjs-size-monitor"><div class="chartjs-size-monitor-expand"><div class=""></div></div><div class="chartjs-size-monitor-shrink"><div class=""></div></div></div>
+
+
+
+    <h2>Узел: {{node.name}} : {{node.addressnodes.small_address}}</h2>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th scope="col">Добавить коммутатор</th>
+              <th scope="col">Имя</th>
+              <th scope="col">IP адрес</th>
+
+
+
+            </tr>
+          </thead>
+          <tbody>
+
+    <form method="post" name="addswnode" >
+            <tr>
+              <td><select name="sw" class="form-control form-control-dark w-100">
+
+                      {% for i in list_sw %}
+                      <option value="{{i.id}}">{{i.id_aiu}} &ensp; : &ensp; {{i.modelswitch.modelsw}}</option>
+                      {% endfor %}
+                  </select>
+              </td>
+              <td><input class="form-control form-control-dark w-100" name="name"  type="text" placeholder="{{node.addressnodes.translate}}" ></td>
+
+              <td><select name="ipsw" class="form-control form-control-dark w-100">
+
+                      {% for i in list_ipsw %}
+                      <option value="{{i.id}}">{{i.ipaddr}}</option>
+                      {% endfor %}
+                  </select>
+              </td>
+              <td><button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
+            </tr>
+          </form>
+
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+
+                    {% for category, message in messages %}
+          <tr><p class="text-danger">{{ message }}</p></tr>
+
+                    {% endfor %}
+
+            {% endif %}
+          {% endwith %}
+
+
+          </tbody>
+        </table>
+      </div>
+    <!-- Блок 2ой таблицы-->
+    {% for sw in list_sw_node%}
+     <h1>{{sw.name}} : {{sw.switchip.switchip}} </h1>
+        <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th scope="col">Порт</th>
+              <th scope="col">Адрес</th>
+              <th scope="col">IP коммутатора</th>
+              <th scope="col">Имя коммутатора</th>
+              <th scope="col">Примечание</th>
+            </tr>
+            <tr>
+                {%for swa in list_sw_access%}
+
+                {%endfor%}
+            </tr>
+            {%endfor%}
+          <!--Конец 2-го блока -->
+          </thead>
+    </main>
+
+{% endblock %}

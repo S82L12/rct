@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, send_file, redirect, url_for,
 from werkzeug.utils import secure_filename
 from rct.models import db, Vlan, Node, Vlansw, Address, Type, vlanFromFile, addrFromFile, runupaddr, Location, locatFromFile, check_if_ip_is_network, Model, runupmodel, modeliFromFile, Device, check_if_id_aiu, check_if_mac_aiu, deviceFromFile, Modelswitch, modeliswFromFile, Switch, Typesw, Place, Ipaddr, Ipaddrsw, Port
 import ipaddress
+import json
 from transliterate import translit
 import os
 from rct.forms import LocationFormAdd, ModelFormAdd
@@ -208,6 +209,25 @@ def deldevice():
 
     return  render_template("delitem.html", status = status)
 
+
+# УДаление узла с адреса
+@app.route('/delnodes', methods = ['POST'])
+def delnodes():
+
+    try:
+        ItemToDelete = Node.query.get(request.form['delbtn'])
+        statusItemToDelete =  ItemToDelete.id
+        db.session.delete(ItemToDelete)
+        db.session.flush()
+        db.session.commit()
+        status = "Адрес: "+ str(statusItemToDelete) +" Успешно удален"
+    except:
+        db.session.rollback()
+        print("Ошибка удаления")
+        status = "Ошибка удаления Адреса : " + statusItemToDelete
+    return  render_template("delitem.html", status = status)
+
+
 # Удаление коммутатора со склада с преварительной проверкой подключенных портов
 @app.route('/delswitches', methods = ['POST'])
 def delswitches():
@@ -240,37 +260,82 @@ def delswitches():
 # def deleditswitch():
 #     pass
 
+
+# Работа с узлами
+@app.route('/addnode/<node>', methods = ['POST', 'GET'])
+def show_node(node):
+    node = db.session.query(Node).get(node)
+    list_sw = db.session.query(Switch).order_by("id_aiu").filter(Switch.node_id == None).all()
+    list_ipsw = db.session.query(Ipaddrsw).order_by('id').filter(Switch.node_id == None, Ipaddrsw.status == 'free', Ipaddrsw.gw == '172.0.0.1').all()
+
+    # List for str
+   # print('Node ID: ',node.id)
+    list_sw_node = db.session.query(Switch).filter(Switch.node_id == node.id).all()
+    list_sw_access = db.session.query(Port).all()
+
+   # print('List SW', list_ipsw)
+    #list_ipsw = db.session.query(Ipaddrsw).join(Vlansw).filter(Ipaddrsw.switch_id == 'free', Vlansw.id_vl == '27').all()
+
+   # url_redirect = '/addnode/' + str(node.id)
+    if request.method == "POST":
+       try:
+             # synchronize_session=False объект удаляется
+            db.session.query(Switch).filter(Switch.id == request.form.get('sw')).update({Switch.node_id: node.id, Switch.address_id : node.address_id, Switch.name: request.form["name"], Switch.ipaddrsw_id: request.form.get('ipsw')})
+            ip = db.session.query(Ipaddrsw).get(request.form.get('ipsw'))#.update({Ipaddrsw.status: request.form.get('sw')})
+            ip.status = request.form.get('sw')
+            db.session.add(ip)
+            db.session.commit()
+
+
+           # return redirect(url_for(url_redirect))
+
+
+
+       except Exception as e:
+            err = type(e).__name__
+            db.session.rollback()
+            flash(err, "error")
+            flash("Ошибка добавления адреса в базу", "error")
+            print("Ошибка добавления адреса в базу")
+
+
+    return render_template('editnode.html', node = node, title = node.name, list_sw=list_sw, list_ipsw=list_ipsw, list_sw_node=list_sw_node, list_sw_access= list_sw_access)
+
+# Создание узлов... создаем имя и привязываем к адресу (непомню!!!!!!!!!)
+@app.route('/nodeandsw', methods = ['GET'])
+def nodeandsw():
+    list_nodes = db.session.query(Node).order_by(Node.name).all()
+    return render_template("nodeandsw.html",  list_nodes=list_nodes)
+
+
 # Добавление Узла
 @app.route('/addnode', methods = ['POST', 'GET'])
 def addnode():
     list_address = db.session.query(Address).all()
+    list_nodes = db.session.query(Node).order_by(Node.name).all()
 
+    # Выбираем SW оторые никуда не установлены
     list_sw = db.session.query(Switch).order_by("id_aiu").filter(Switch.node_id == None).all()
     #dict_sw = {id_aiu.id : modelsw.modelswitch.modelsw for id_aiu in list_sw for modelsw in list_sw}
 
 
     if request.method == "POST":
-       # try:
-            sw = request.form["switches"].split(" : ")[0]
-            sw = db.session.query(Switch).filter(Switch.id_aiu == sw)
-            node = request.form.to_dict()
+       try:
+           node = request.form.to_dict()
+           node = Node(name=node["name"], description = node["description"], address_id = node["address_id"])
+           db.session.add(node)
+           db.session.flush()
+           db.session.commit()
+           return redirect(url_for('addnode'))
 
-            for i,j in node.items():
-                print(i,j)
-            node = Node(**node)
-            db.session.add(node)
-            db.session.flush()
-            node.switches.append(sw)
-            db.session.commit()
-            #list_sw = db.session.query(Switch).order_by("id_aiu").filter(Switch.node_id == None).all()
-            return redirect(url_for('addnode'))
-        # except:
-        #     flash("Ошибка добавления адреса в базу", "error")
-        #     db.session.rollback()
-        #     print("Ошибка добавления адреса в базу")
+       except:
+           flash("Ошибка добавления адреса в базу", "error")
+           db.session.rollback()
+           print("Ошибка добавления адреса в базу")
+           return redirect(url_for('addnode'))
 
     #return redirect(url_for('addnode'))
-    return render_template("addnode.html", list_address = list_address, list_sw = list_sw, title = 'Добавление Узла')
+    return render_template("addnode.html", list_address = list_address, title = 'Создание Узла', list_nodes=list_nodes)
 
 
 # Добавление VLAN и Network for DEVICE
@@ -375,7 +440,7 @@ def devices():
 
     return render_template("devices.html", list_devices=list_devices, list_type = list_type, list_models= list_models, title='Устройства')
 
-# редактирование коммутаторов и узлов
+# редактирование коммутаторов и узлов этот шаблон не используется!
 @app.route('/switches',methods = ['POST', 'GET'])
 def switches():
     list_switches = db.session.query(Switch).order_by("name").all()

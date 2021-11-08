@@ -206,9 +206,9 @@ class Modelswitch(db.Model):
 # Узел
 class Node(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(25), comment='Имя узла')
+    name = db.Column(db.String(25), comment='Имя узла', nullable = False, unique=True)
     description = db.Column(db.String(400), comment='Примечание')
-    address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
+    address_id = db.Column(db.Integer, db.ForeignKey('address.id'), unique=True)
     switches = db.relationship('Switch', backref='swnodes')
 
 
@@ -217,7 +217,7 @@ class Node(db.Model, TimestampMixin):
 class Switch(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     id_aiu = db.Column(db.String(10), comment='ID_AIU', nullable=False, unique=True)
-    name = db.Column(db.String(10), default = 'sklad')
+    name = db.Column(db.String(10), unique=True)
     mac = db.Column(db.String(16), comment='mac', unique=True)
     docs = db.Column(db.String(30), comment='Накладная')
     description = db.Column(db.String(400), comment='Примечание')
