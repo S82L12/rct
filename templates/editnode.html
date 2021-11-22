@@ -41,20 +41,28 @@
                       {% endfor %}
                   </select>
               </td>
-              <td><button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
+              <td><button type="submit" name ="btnsubmit" value="btnadddswnode" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
             </tr>
           </form>
           </tbody>
         <!-- Добавление коммутатора на адрес-->
 
+
      <table class="table table-striped table-sm">
           <thead>
             <tr>
-              <th scope="col">Добавить коммутатор на узел:</th>
+
+              <th scope="col">Добавить коммутатор на адрес:</th>
             </tr>
+
             <tr>
-              <th scope="col">Имя</th>
-              <th scope="col">IP адрес</th>
+                <form method="post" name="addswaddress">
+              <th scope="col">Адрес: {{form.address}}</th>
+
+              <th scope="col">Коммутатор: {{form.switch}}</th>
+
+               <th scope="col"><button type="submit" name ="btnsubmit" value="btnaddswaddr"></th>
+                </form>
             </tr>
           </thead>
 

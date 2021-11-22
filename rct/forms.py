@@ -19,7 +19,7 @@ class ModelswFormAdd(FlaskForm):
     submit = SubmitField("Добавить")
 
 class AddressSwitchAdd(FlaskForm):
-    address = SelectField("adress", choices=[])
+    address = SelectField("address", choices=[])
     switch = SelectField("switch", choices=[])
 
 
