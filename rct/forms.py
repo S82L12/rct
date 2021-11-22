@@ -6,7 +6,7 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectField, QuerySelectMultipleF
 
 
 class LocationFormAdd(FlaskForm):
-    small_location = StringField("small_location ", validators=[DataRequired(), Length(min=4, max=100)])
+    small_location = StringField("small_location ", validators=[DataRequired(), Length(min=4, max=100)]) # название поля ввода = "small_location " name field input
     submit = SubmitField("Добавить")
 
 
@@ -17,3 +17,10 @@ class ModelFormAdd(FlaskForm):
 class ModelswFormAdd(FlaskForm):
     modelsw = StringField("small_location ", validators=[DataRequired(), Length(min=4, max=15)])
     submit = SubmitField("Добавить")
+
+class AddressSwitchAdd(FlaskForm):
+    address = SelectField("adress", choices=[])
+    switch = SelectField("switch", choices=[])
+
+
+

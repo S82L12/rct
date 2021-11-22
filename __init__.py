@@ -261,17 +261,80 @@ def delswitches():
 #     pass
 
 
-# Работа с узлами
+# Работа с узлами 19 11 2021 остановился
 @app.route('/addnode/<node>', methods = ['POST', 'GET'])
 def show_node(node):
+    all_node = []
+    # Получаем объект УЗЕЛ (NODE)
     node = db.session.query(Node).get(node)
+
+    #Получаем список доступных для добавления коммутаторов со склада и IP
     list_sw = db.session.query(Switch).order_by("id_aiu").filter(Switch.node_id == None).all()
     list_ipsw = db.session.query(Ipaddrsw).order_by('id').filter(Switch.node_id == None, Ipaddrsw.status == 'free', Ipaddrsw.gw == '172.0.0.1').all()
 
-    # List for str
-   # print('Node ID: ',node.id)
+
+    # Список коммутаторов SWU установленных на узле
     list_sw_node = db.session.query(Switch).filter(Switch.node_id == node.id).all()
+    print('Список коммутаторов SWU установленных на узле',list_sw_node)
+    relevant_keys = ['id', 'ipaddrsw_id', 'node_id', 'id_aiu', 'name', 'mac', 'docs', 'address_id']
+    relevant_keys_port = ['id', 'name', 'address_id', 'switch_id', 'linksw_id', 'description']
+    list_sw_node_rel = []
+    for i in list_sw_node:
+        dict_swu = i.__dict__
+        # Создаем словарь с релевантными ключами
+        dict_swu = {key : dict_swu[key] for key in relevant_keys}
+
+        print('Словарь с параметрами коммутаторов после релевантизации',dict_swu)
+        ipaddr_obj =  db.session.query(Ipaddrsw).get(dict_swu["ipaddrsw_id"])
+
+        print('IP коммутатора',ipaddr_obj.ipaddr)
+        dict_swu["ipaddr"] = ipaddr_obj.ipaddr
+        list_sw_node_rel.append(dict_swu)
+        #list_port = db.session.query(Switch, Port).filter(Switch.id == i.id).filter(Port.switch_id == i.ports).all()
+        list_port = db.session.query(Port).filter(Port.switch_id == i.id).all()
+        list_ports_end = [] # используется для создания списка словарей портов (dict_port)
+        for port in list_port:
+            print("Порт: ", port.name)
+            dict_port = port.__dict__
+            dict_port = {key: dict_port[key] for key in relevant_keys_port}
+            print("Словарь OBJ порт: ",dict_port)
+            # получаем адрес подключенный к порту
+            addr_on_port = db.session.query(Address).get(dict_port["linksw_id"])
+            print("Адрес подключенный к порту: ",addr_on_port)
+            # GET value from OBJ address
+            if addr_on_port is None:
+                dict_port["address"] = 'Пустой'
+            else:
+                dict_port["address"] = addr_on_port.small_address
+            print("ПредКонечный словарь",dict_port)
+            print('Obj адрес подключенный к порту',addr_on_port, type(addr_on_port))
+            # Добавляем список словарей коммутаторов к каждому порту.
+            #sws_on_port =db.session.query(Switch).filter(Switch.address_id == addr_on_port.id).all()
+
+            # db.session.query(Switch).filter(Port.linksw_id == , Typesw.typesw == 'swu').all()
+            #print("Коммутаторы подключенные к порту:", sws_on_port)
+
+
+            # Добавляем в список словарей портов list_ports_end получившийся словарь dict_port
+
+            # port_addr = port.__dict__
+            # port_addr = {key: port_addr[key] for key in ["id", "small_address"]}
+            # print(port_addr)
+            #
+            list_ports_end.append(dict_port)
+
+
+
+
+        #print(list_port)
+        #print(dict_swu)
+
+
+
+
+
     list_sw_access = db.session.query(Port).all()
+
 
    # print('List SW', list_ipsw)
     #list_ipsw = db.session.query(Ipaddrsw).join(Vlansw).filter(Ipaddrsw.switch_id == 'free', Vlansw.id_vl == '27').all()
@@ -299,7 +362,7 @@ def show_node(node):
             print("Ошибка добавления адреса в базу")
 
 
-    return render_template('editnode.html', node = node, title = node.name, list_sw=list_sw, list_ipsw=list_ipsw, list_sw_node=list_sw_node, list_sw_access= list_sw_access)
+    return render_template('editnode.html', node = node, list_ports_end = list_ports_end, title = node.name, list_sw=list_sw, list_ipsw=list_ipsw, list_sw_node=list_sw_node, list_sw_node_rel = list_sw_node_rel, list_sw_access= list_sw_access)
 
 # Создание узлов... создаем имя и привязываем к адресу (непомню!!!!!!!!!)
 @app.route('/nodeandsw', methods = ['GET'])

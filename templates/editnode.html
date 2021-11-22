@@ -16,12 +16,9 @@
         <table class="table table-striped table-sm">
           <thead>
             <tr>
-              <th scope="col">Добавить коммутатор</th>
+              <th scope="col">Добавить коммутатор на узел:</th>
               <th scope="col">Имя</th>
               <th scope="col">IP адрес</th>
-
-
-
             </tr>
           </thead>
           <tbody>
@@ -47,6 +44,21 @@
               <td><button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
             </tr>
           </form>
+          </tbody>
+        <!-- Добавление коммутатора на адрес-->
+
+     <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th scope="col">Добавить коммутатор на узел:</th>
+            </tr>
+            <tr>
+              <th scope="col">Имя</th>
+              <th scope="col">IP адрес</th>
+            </tr>
+          </thead>
+
+
 
           {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -64,26 +76,59 @@
         </table>
       </div>
     <!-- Блок 2ой таблицы-->
-    {% for sw in list_sw_node%}
-     <h1>{{sw.name}} : {{sw.switchip.switchip}} </h1>
-        <div class="table-responsive">
+
+
+    {% for swu in list_sw_node_rel%}
+
+     <div class="table-responsive">
         <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              <th scope="col"> {{node.addressnodes.small_address}}</th>
+
+              <th scope="col">{{swu.ipaddr}}</th>
+
+              <th scope="col">{{swu.mac}}</th>
+              <th scope="col">{{swu.name}}</th>
+              <th scope="col">{{swu.docs}}</th>
+            </tr>
+          </thead>
+
+
+
+
           <thead>
             <tr>
               <th scope="col">Порт</th>
               <th scope="col">Адрес</th>
+
               <th scope="col">IP коммутатора</th>
+               <th scope="col">MAC</th>
               <th scope="col">Имя коммутатора</th>
               <th scope="col">Примечание</th>
             </tr>
+             </thead>
             <tr>
-                {%for swa in list_sw_access%}
+                {%for port in list_ports_end%}
+                    <tr>
+              <td scope="col">{{port["name"]}}</td>
+              <td scope="col">{{port["address"]}}<button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
 
+              <td scope="col">IP коммутатора</td>
+              <td scope="col">MAC</td>
+              <td scope="col">Имя коммутатора</td>
+              <td scope="col">Примечание</td>
+                     </tr>
                 {%endfor%}
             </tr>
+
+
+        </table>
+     </div>
+
             {%endfor%}
           <!--Конец 2-го блока -->
-          </thead>
     </main>
 
 {% endblock %}

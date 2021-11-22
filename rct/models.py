@@ -40,6 +40,7 @@ class Address(db.Model, TimestampMixin):
     switches = db.relationship('Switch', backref='addressswitch')
     vlanssw = db.relationship('Vlansw', backref='addressvlanssw')
     nodes = db.relationship('Node', backref='addressnodes', uselist = False)
+    ports = db.relationship('Port', backref='addressports')
 
 
 class Vlansw(db.Model):
@@ -235,11 +236,13 @@ class Switch(db.Model, TimestampMixin):
 class Port(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Integer)
-    switch_id = db.Column(db.Integer, db.ForeignKey('switch.id', ondelete='CASCADE'))
+    switch_id = db.Column(db.Integer, db.ForeignKey('switch.id', ondelete='CASCADE')) # коммутатор которому принадлежит self порт
     status = db.Column(db.String(10), default = 'off', comment = 'empty')
-    linksw_id = db.Column(db.Integer, db.ForeignKey('port.id'))
-    linkdev_id =db.Column(db.Integer, db.ForeignKey('place.id'))
+    linksw_id = db.Column(db.Integer, db.ForeignKey('port.id')) # подключенный к порту коммутатор
+    linkdev_id =db.Column(db.Integer, db.ForeignKey('place.id')) # подключенный к порту device
+    address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
     linkssw = relationship("Port")
+    description = db.Column(db.String(400), comment='Примечание')
 
     @classmethod
     def createports(cls, objsw):
