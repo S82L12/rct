@@ -6,11 +6,12 @@
 
 {% block body %}
 
+
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4"><div class="chartjs-size-monitor"><div class="chartjs-size-monitor-expand"><div class=""></div></div><div class="chartjs-size-monitor-shrink"><div class=""></div></div></div>
 
 
 
-    <h2>Узел: {{node.name}} : {{node.addressnodes.small_address}}</h2>
+    <h2>Узел: {{nodeObj.name}} : {{nodeObj.addressnodes.small_address}}</h2>
 
     <div class="table-responsive">
         <table class="table table-striped table-sm">
@@ -23,7 +24,7 @@
           </thead>
           <tbody>
 
-    <form method="post" name="addswnode" >
+    <form method="post" name="addswnode">
             <tr>
               <td><select name="sw" class="form-control form-control-dark w-100">
 
@@ -32,7 +33,7 @@
                       {% endfor %}
                   </select>
               </td>
-              <td><input class="form-control form-control-dark w-100" name="name"  type="text" placeholder="{{node.addressnodes.translate}}" ></td>
+              <td><input class="form-control form-control-dark w-100" name="name"  type="text" placeholder="{{nodeObj.addressnodes.translate}}" ></td>
 
               <td><select name="ipsw" class="form-control form-control-dark w-100">
 
@@ -51,17 +52,14 @@
      <table class="table table-striped table-sm">
           <thead>
             <tr>
-
               <th scope="col">Добавить коммутатор на адрес:</th>
             </tr>
 
             <tr>
                 <form method="post" name="addswaddress">
-              <th scope="col">Адрес: {{form.address}}</th>
+                  <th scope="col">Адрес: {{form.address}}</th>
+                  <th scope="col">Коммутатор: {{form.switch}} <button type="submit" name ="btnsubmit" value="btnaddswaddr" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></th>
 
-              <th scope="col">Коммутатор: {{form.switch}}</th>
-
-               <th scope="col"><button type="submit" name ="btnsubmit" value="btnaddswaddr"></th>
                 </form>
             </tr>
           </thead>
@@ -83,7 +81,8 @@
           </tbody>
         </table>
       </div>
-    <!-- Блок 2ой таблицы-->
+
+    <!-- Блок 3-ей таблицы-->
 
 
     {% for swu in list_sw_node_rel%}
@@ -93,7 +92,7 @@
           <thead>
             <tr>
               <th scope="col"></th>
-              <th scope="col"> {{node.addressnodes.small_address}}</th>
+              <th scope="col"> {{nodeObj.addressnodes.small_address}}</th>
 
               <th scope="col">{{swu.ipaddr}}</th>
 
@@ -110,7 +109,6 @@
             <tr>
               <th scope="col">Порт</th>
               <th scope="col">Адрес</th>
-
               <th scope="col">IP коммутатора</th>
                <th scope="col">MAC</th>
               <th scope="col">Имя коммутатора</th>
@@ -121,8 +119,15 @@
                 {%for port in list_ports_end%}
                     <tr>
               <td scope="col">{{port["name"]}}</td>
-              <td scope="col">{{port["address"]}}<button type="submit" class="btn btn-dark btn-sm">ДОБАВИТЬ</button></td>
 
+              <!--<form  action="/editaddrport" method="post" name="addrport"> -->
+            <td id = {{port["id"]}} scope="col">
+                    <div>{{port["address"]}}</div>
+                    <button type="submit"  onclick="editportaddr(this,event)"  name ="btneditaddrport" value="{{port["id"]}}" class="btn btn-dark btn-sm">ДОБАВИТЬ</button>
+            </td>
+              <!--</form>-->
+
+            <!-- onclick="alert('Выбран: {{port["name"]}}')"      onclick="editportaddr()"-->
               <td scope="col">IP коммутатора</td>
               <td scope="col">MAC</td>
               <td scope="col">Имя коммутатора</td>
@@ -136,7 +141,7 @@
      </div>
 
             {%endfor%}
-          <!--Конец 2-го блока -->
+          <!--Конец 3-го блока -->
     </main>
-
+<script src="/static/js/javascript.js"></script>
 {% endblock %}

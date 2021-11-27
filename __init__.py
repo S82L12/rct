@@ -8,6 +8,7 @@ import os
 from rct.forms import LocationFormAdd, ModelFormAdd, AddressSwitchAdd
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+import time
 
 #from flask_migrate import Migrate#, MigrateCommand
 
@@ -261,32 +262,26 @@ def delswitches():
 #     pass
 
 
-# Работа с узлами 19 11 2021 остановился
+# Работа с узлами 23 11 2021 остановился
 @app.route('/addnode/<node>', methods = ['POST', 'GET'])
 def show_node(node):
     all_node = []
     # Получаем объект УЗЕЛ (NODE)
-    node = db.session.query(Node).get(node)
+    nodeObj = db.session.query(Node).get(node)
 
-    #Получаем список доступных для добавления коммутаторов со склада и IP
-    list_sw = db.session.query(Switch).order_by("id_aiu").filter(Switch.node_id == None).all()
+    # Получаем список доступных для добавления коммутаторов со склада и IP
+    list_sw = db.session.query(Switch).filter(Typesw.id == Switch.type_id).filter(Typesw.typesw == 'swu').filter(Switch.address_id == None).order_by("id_aiu").all()
     list_ipsw = db.session.query(Ipaddrsw).order_by('id').filter(Switch.node_id == None, Ipaddrsw.status == 'free', Ipaddrsw.gw == '172.0.0.1').all()
 
     # 2 часть (добавление коммутатора - ACCESS on address
     form = AddressSwitchAdd()
-
     form.address.choices = [(address.id, address.small_address) for address in db.session.query(Address).all()] # получаем список кортежей адресов для возможности выбора
-
-
     form.switch.choices = [(switch.id, 'id_АИЮ: '+ str(switch.id_aiu) +'\t\t'+ 'Модель:'+ str(switch.modelswitch.modelsw))\
-                           for switch in db.session.query(Switch).filter(Typesw.id == Switch.type_id).filter(Typesw.typesw == 'Access').all()]
-
-
-
+                           for switch in db.session.query(Switch).filter(Typesw.id == Switch.type_id).filter(Typesw.typesw == 'Access').filter(Switch.address_id == None).all()]
 
 
     # 3 часть. Список коммутаторов SWU установленных на узле
-    list_sw_node = db.session.query(Switch).filter(Switch.node_id == node.id).all()
+    list_sw_node = db.session.query(Switch).filter(Switch.node_id == nodeObj.id).all()
     #print('Список коммутаторов SWU установленных на узле',list_sw_node)
     relevant_keys = ['id', 'ipaddrsw_id', 'node_id', 'id_aiu', 'name', 'mac', 'docs', 'address_id']
     relevant_keys_port = ['id', 'name', 'address_id', 'switch_id', 'linksw_id', 'description']
@@ -304,14 +299,16 @@ def show_node(node):
         list_sw_node_rel.append(dict_swu)
         #list_port = db.session.query(Switch, Port).filter(Switch.id == i.id).filter(Port.switch_id == i.ports).all()
         list_port = db.session.query(Port).filter(Port.switch_id == i.id).all()
+
         list_ports_end = [] # используется для создания списка словарей портов (dict_port)
         for port in list_port:
         #    print("Порт: ", port.name)
             dict_port = port.__dict__
             dict_port = {key: dict_port[key] for key in relevant_keys_port}
-         #   print("Словарь OBJ порт: ",dict_port)
+            print("Словарь OBJ порт: ",dict_port)
             # получаем адрес подключенный к порту
-            addr_on_port = db.session.query(Address).get(dict_port["linksw_id"])
+
+            addr_on_port = db.session.query(Address).get(dict_port["address_id"])
           #  print("Адрес подключенный к порту: ",addr_on_port)
             # GET value from OBJ address
             if addr_on_port is None:
@@ -354,19 +351,22 @@ def show_node(node):
 
    # url_redirect = '/addnode/' + str(node.id)
     if request.method == 'POST':
-
-
+        data = request.form.to_dict()
+        print(data)
+        print(dir(data))
+        for i in data:
+            print(i)
 
         # Обработка формы с добавлением коммутатора на узел
         if request.form['btnsubmit'] == 'btnadddswnode':
             try:
                  # synchronize_session=False объект удаляется
-                db.session.query(Switch).filter(Switch.id == request.form.get('sw')).update({Switch.node_id: node.id, Switch.address_id : node.address_id, Switch.name: request.form["name"], Switch.ipaddrsw_id: request.form.get('ipsw')})
+                db.session.query(Switch).filter(Switch.id == request.form.get('sw')).update({Switch.node_id: nodeObj.id, Switch.address_id : nodeObj.address_id, Switch.name: request.form["name"], Switch.ipaddrsw_id: request.form.get('ipsw')})
                 ip = db.session.query(Ipaddrsw).get(request.form.get('ipsw'))#.update({Ipaddrsw.status: request.form.get('sw')})
                 ip.status = request.form.get('sw')
                 db.session.add(ip)
                 db.session.commit()
-       # return redirect(url_for(url_redirect))
+                #return redirect(url_for('show_node', node=node))
             except Exception as e:
                 err = type(e).__name__
                 db.session.rollback()
@@ -376,12 +376,50 @@ def show_node(node):
 
         elif request.form['btnsubmit'] == 'btnaddswaddr':
             print('ПРИНЯЛИ')
+            try:
+                address = db.session.query(Address).get(form.address.data)
+                switch = db.session.query(Switch).get(form.switch.data)
+                address.switches.append(switch)
+                db.session.add(switch)
+                db.session.commit()
+                flash('Успешно добавили')
+
+            except Exception as e:
+                err = type(e).__name__
+                db.session.rollback()
+                flash(err, "error")
+                flash("Ошибка добавления коммутатора в базу на адрес", "error")
+                print("Ошибка добавления адреса в базу")
+
+
             print(form.address.data, form.switch.data)
 
 
-    return render_template('editnode.html', form = form, node = node, list_ports_end = list_ports_end, \
-                               title = node.name, list_sw=list_sw, list_ipsw=list_ipsw, list_sw_node=list_sw_node, \
+    return render_template('editnode.html', form = form, nodeObj = nodeObj, list_ports_end = list_ports_end, \
+                               title = nodeObj.name, list_sw=list_sw, list_ipsw=list_ipsw, list_sw_node=list_sw_node, \
                                list_sw_node_rel = list_sw_node_rel, list_sw_access= list_sw_access)
+
+
+# Обработка привязки адреса к порту (Добавляем к порту узлового коммутатора адрес)
+@app.route('/editaddrport', methods = ['POST'])
+def editaddrport():
+    try:
+        data = request.form.to_dict()
+        addressObj = db.session.query(Address).get(data["id_address"])
+        portObj = db.session.query(Port).get(data["id_port"])
+        addressObj.ports.append(portObj)
+        db.session.add_all([addressObj,portObj])
+        db.session.flush()
+        db.session.commit()
+
+        #print(addressObj.small_address, portObj.name)
+        #time.sleep(1000)
+    except:
+        db.session.rollback()
+        print("Ошибка удаления")
+        status = "Ошибка удаления коммутатора : "
+        return render_template("nodeandsw.html")
+
 
 # Создание узлов... создаем имя и привязываем к адресу (непомню!!!!!!!!!)
 @app.route('/nodeandsw', methods = ['GET'])
