@@ -91,11 +91,9 @@
         <table class="table table-striped table-sm">
           <thead>
             <tr>
-              <th scope="col"></th>
+              <th scope="col">ID_АИЮ: {{swu.id_aiu}}</th>
               <th scope="col"> {{nodeObj.addressnodes.small_address}}</th>
-
               <th scope="col">{{swu.ipaddr}}</th>
-
               <th scope="col">{{swu.mac}}</th>
               <th scope="col">{{swu.name}}</th>
               <th scope="col">{{swu.docs}}</th>
@@ -115,32 +113,33 @@
               <th scope="col">Примечание</th>
             </tr>
              </thead>
-            <tr>
+
+
+
+
                 {%for port in list_ports_end%}
-                    <tr>
-              <td scope="col">{{port["name"]}}</td>
 
-              <!--<form  action="/editaddrport" method="post" name="addrport"> -->
-            <td id = {{port["id"]}} scope="col">
-                    <div>{{port["address"]}}</div>
-                    <button type="submit"  onclick="editportaddr(this,event)"  name ="btneditaddrport" value="{{port["id"]}}" class="btn btn-dark btn-sm">ДОБАВИТЬ</button>
-            </td>
-              <!--</form>-->
+            <tr>
 
-            <!-- onclick="alert('Выбран: {{port["name"]}}')"      onclick="editportaddr()"-->
-              <td scope="col">IP коммутатора</td>
-              <td scope="col">MAC</td>
-              <td scope="col">Имя коммутатора</td>
-              <td scope="col">Примечание</td>
-                     </tr>
-                {%endfor%}
+                <td scope="col">{{port["name"]}}</td>
+                <td id = {{port["id"]}} scope="col">
+                    <div style="display: inline-block" >{{port["address"]}}</div>
+                    <button style = "text-align: right" type="submit"  onclick="editportaddr(this,event)"  name ="btneditaddrport" value="{{port["id"]}}" class="btn btn-dark btn-sm">ДОБАВИТЬ</button>
+                </td>
+                <td scope="col">IP коммутатора</td>
+                <td scope="col">MAC</td>
+                <td scope="col">Имя коммутатора</td>
+                <td scope="col">Примечание</td>
             </tr>
+
+                {%endfor%}
+
 
 
         </table>
      </div>
 
-            {%endfor%}
+    {%endfor%}
           <!--Конец 3-го блока -->
     </main>
 <script src="/static/js/javascript.js"></script>

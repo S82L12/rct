@@ -280,36 +280,50 @@ def show_node(node):
                            for switch in db.session.query(Switch).filter(Typesw.id == Switch.type_id).filter(Typesw.typesw == 'Access').filter(Switch.address_id == None).all()]
 
 
-    # 3 часть. Список коммутаторов SWU установленных на узле
+    """ 3 Часть. Список коммутаторов SWU установленных на узле"""
+
+
     list_sw_node = db.session.query(Switch).filter(Switch.node_id == nodeObj.id).all()
     #print('Список коммутаторов SWU установленных на узле',list_sw_node)
+    # Ключи которые нам потребуются для добавления в словарь + ключи ports ipaddr
     relevant_keys = ['id', 'ipaddrsw_id', 'node_id', 'id_aiu', 'name', 'mac', 'docs', 'address_id']
     relevant_keys_port = ['id', 'name', 'address_id', 'switch_id', 'linksw_id', 'description']
+
+    # Вот с этим списком мы будем потом работать
     list_sw_node_rel = []
+
     for i in list_sw_node:
         dict_swu = i.__dict__
         # Создаем словарь с релевантными ключами
         dict_swu = {key : dict_swu[key] for key in relevant_keys}
 
-       # print('Словарь с параметрами коммутаторов после релевантизации',dict_swu)
+        # Получаем IP адреса коммутатора и вносим его в словарь (изначнально в словаре только ссылка на id таблицы с IP адресами)
+        # добавляем в словарь с новым ключом
         ipaddr_obj =  db.session.query(Ipaddrsw).get(dict_swu["ipaddrsw_id"])
-
-        #print('IP коммутатора',ipaddr_obj.ipaddr)
         dict_swu["ipaddr"] = ipaddr_obj.ipaddr
-        list_sw_node_rel.append(dict_swu)
-        #list_port = db.session.query(Switch, Port).filter(Switch.id == i.id).filter(Port.switch_id == i.ports).all()
-        list_port = db.session.query(Port).filter(Port.switch_id == i.id).all()
 
-        list_ports_end = [] # используется для создания списка словарей портов (dict_port)
+
+        #list_port = db.session.query(Switch, Port).filter(Switch.id == i.id).filter(Port.switch_id == i.ports).all()
+
+        # начинаем заполнять ключ ports, он будет состоять из списка словарей   dict_port
+        # поллучаем список портов у коммутатора
+
+        list_port = db.session.query(Port).filter(Port.switch_id == i.id).all()
+        list_ports_end = [] # используется для создания списка словарей портов (dict_port) в последующем нужно добавить этот список в значения ключа ports
+
+
+
+
         for port in list_port:
-        #    print("Порт: ", port.name)
+
+            #    print("Порт: ", port.name)
             dict_port = port.__dict__
             dict_port = {key: dict_port[key] for key in relevant_keys_port}
-            print("Словарь OBJ порт: ",dict_port)
+
             # получаем адрес подключенный к порту
 
             addr_on_port = db.session.query(Address).get(dict_port["address_id"])
-          #  print("Адрес подключенный к порту: ",addr_on_port)
+            #  print("Адрес подключенный к порту: ",addr_on_port)
             # GET value from OBJ address
             if addr_on_port is None:
                 dict_port["address"] = 'Пустой'
@@ -331,7 +345,22 @@ def show_node(node):
             # port_addr = {key: port_addr[key] for key in ["id", "small_address"]}
             # print(port_addr)
             #
+            #print("Словарь OBJ порт: ",dict_port)
             list_ports_end.append(dict_port)
+
+        #print('Словарь коммутаторов на узле:', dict_swu)
+        # Добавляем получившийся список в значения ключа ports в словаре swu_dict
+        dict_swu["ports"] = list_ports_end
+       # print('LIST ports dict2', dict_swu["ports"])
+
+    # Добавляем наш словарь портов в основной список   !!!!!!!!!!  нужно в конец перенести
+    list_sw_node_rel.append(dict_swu)
+    print(list_sw_node_rel)
+
+    #print(list_ports_end)
+
+
+
 
 
 
